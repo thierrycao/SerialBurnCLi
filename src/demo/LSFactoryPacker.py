@@ -7,10 +7,13 @@
 # ************************************************************************
 
 import os, sys, hashlib, signal, shutil
+sys.path.append("..") 
 from plugins import utils as utils
 from plugins import logger as logger
 from plugins import lsusb as lsusb
 # from plugins import keyboard as keyboard 
+
+
 if os.name == 'posix':
     from plugins import console_posix as console
 else:
