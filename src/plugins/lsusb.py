@@ -1,6 +1,6 @@
 import usb
 from usb.core import USBError
-import win32file
+
 from plugins import logger 
 
 ### Some auxiliary functions ###
@@ -72,34 +72,34 @@ def get_usb_devlists():
         finally:
             return dev_dict
 
-
-
- 
-def get_drives():
-    drives=[]
-    sign=win32file.GetLogicalDrives()
-    drive_all=["A:\\","B:\\","C:\\","D:\\","E:\\","F:\\","G:\\","H:\\","I:\\",
-                "J:\\","K:\\","L:\\","M:\\","N:\\","O:\\","P:\\","Q:\\","R:\\",
-                "S:\\","T:\\","U:\\","V:\\","W:\\","X:\\","Y:\\","Z:\\"]
-    for i in range(25):
-        if (sign & 1<<i):
-            if win32file.GetDriveType(drive_all[i])==3:
-                drives.append(drive_all[i])
-    return drives
- 
-def is_udisk(drives):
-    udisk = []
-    for item in drives:
-        try :
-            free_bytes,total_bytes,total_free_bytes=win32file.GetDiskFreeSpaceEx(item)
-            print("total_bytes:", total_bytes/1024/1024/1024)
-            if (total_bytes/1024/1024/1024)<17:
-                udisk.append(item)
-        except :
-            break
 def get_udisk():
-    drives = is_udisk(get_drives())
-    print(drives)
+    if os.name == 'posix':
+        return get_udisk_partition()
+    else:
+        import win32file
+        def get_drives():
+            drives=[]
+            sign=win32file.GetLogicalDrives()
+            drive_all=["A:\\","B:\\","C:\\","D:\\","E:\\","F:\\","G:\\","H:\\","I:\\",
+                        "J:\\","K:\\","L:\\","M:\\","N:\\","O:\\","P:\\","Q:\\","R:\\",
+                        "S:\\","T:\\","U:\\","V:\\","W:\\","X:\\","Y:\\","Z:\\"]
+            for i in range(25):
+                if (sign & 1<<i):
+                    if win32file.GetDriveType(drive_all[i])==3:
+                        drives.append(drive_all[i])
+            return drives
+        def is_udisk(drives):
+            udisk = []
+            for item in drives:
+                try :
+                    free_bytes,total_bytes,total_free_bytes=win32file.GetDiskFreeSpaceEx(item)
+                    print("total_bytes:", total_bytes/1024/1024/1024)
+                    if (total_bytes/1024/1024/1024)<17:
+                        udisk.append(item)
+                except :
+                    break
+        drives = is_udisk(get_drives())
+        return drives
 
 def get_partition():
     import psutil
@@ -114,12 +114,14 @@ def wait_rotate(header=''):
         print("\r" + header + index[i], end="")
         time.sleep(0.2)
 
+# psutil.disk_usage(psutil.disk_partitions()[0].device).total
 def get_udisk_partition():
     from psutil import disk_partitions
     dev = {'driver':'','opts':''}
     for item in disk_partitions():
-        if 'removable' in item.opts and 'rw' in item.opts:
-            dev['driver'], dev['opts'] = item.device, item.opts
+        # if 'removable' in item.opts and 'rw' in item.opts:
+        if 'msdos' in item.fstype and 'rw' in item.opts:
+            dev['driver'], dev['opts'] = item.mountpoint, item.opts
             # print('Found USB Disk: ', dev['driver'])
             return dev
             break

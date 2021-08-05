@@ -89,3 +89,20 @@ def main():
 
 # if __name__ == '__main__':
 #     main()
+
+def process_posix():
+    #原文链接：https://blog.csdn.net/weixin_39793553/article/details/111293598
+    import time
+    import sys
+
+    CSI = '\033['
+
+    def cursor_prev_line():
+        return CSI + '1F'
+
+    for i in range(101):
+        sys.stdout.write(cursor_prev_line())
+        sys.stdout.flush()
+        print("process ... " + str(i) + "%")
+        time.sleep(0.1)
+    print("Done!")
