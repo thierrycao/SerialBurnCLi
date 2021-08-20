@@ -41,15 +41,35 @@ def build_dist():
                 # '--distpath=../dist',
                 # '--specpath=../dist/spec',
                 '--clean',
-                'demo/LSFactoryPacker.py']
+                'demo/csk_spi_tool.py']
 
         run(opts)
     else:
+        opts = ['-F', 
+                '--paths=/Users/abc/workshop/abc/project/utils/anaconda3/envs/py37',             
+                '--paths=/Users/abc/workshop/abc/project/utils/anaconda3/envs/py37/lib/python3.7/site-packages',
+                #'--add-data={};res'.format(os.path.join(get_current_file_path(), './demo/spec/res')),
+                '--i={}'.format(os.path.join(get_current_file_path(), './demo/spec/favorite/_ico.ico')),
+                #'--upx-dir=D:\\workshop\\home\\workshop\\abc\\script\\core\\aux\\utils\\',
+                '--additional-hooks-dir=.',
+                '--name=LScanpenSpiTool',
+                '--distpath={}'.format(os.path.join(get_current_file_path(), '../dist')),
+                '--specpath={}'.format(os.path.join(get_current_file_path(), '../dist/spec')),
+                # '--add-data=../../src/demo/spec/res;res',
+                # '--i=../../src/demo/spec/favorite/_ico.ico',
+                # '--distpath=../dist',
+                # '--specpath=../dist/spec',
+                '--clean',
+                'demo/csk_spi_tool.py']
+
+        run(opts)
+        '''
         opts = ['-F', '--paths=/home/abc/workshop/abc/tools/anaconda3/envs/py37-tools/bin/python',
                 '--clean',
-                'demo/LSFactoryPacker.py'
+                'demo/csk_spi_tool.py'
                 ]
         run(opts)
+        '''
 def main():
     build_dist()
 if __name__ == '__main__':

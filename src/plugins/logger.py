@@ -15,6 +15,12 @@ log_file = None
 
 # print(Fore.GREEN + 'it use green color to print str' + Fore.RESET)
 
+LOG_LEVEL= 4
+
+LOG_ERROR = 1
+LOG_WARN = 2
+LOG_INFO = 3
+LOG_VERBOSE = 4
 
 class bcolors:
     HEADER = '\033[95m'
@@ -47,10 +53,6 @@ def init_log_file(path):
         log_file = open(path, 'w+')
 
 
-def LOGI(msg):
-    print_with_color(msg, bcolors.HEADER, "INFO")
-
-
 def LOGIB(msg):
     print_with_color(msg, bcolors.OKRED, "INFO")
 
@@ -67,13 +69,48 @@ def LOGB(msg):
 def LOGIG(msg):
     print_with_color(msg, bcolors.OKGREEN, "INFO")
 
+def print_hex(*msg):
+    # print(type(msg))
+    length = len(*msg)
+    data = []
+    # print('hhhh', length)
 
-def LOGW(msg):
-    print_with_color(msg, bcolors.WARNING, "WARN")
+    if isinstance(*msg, list):
+        data = list(*msg)
+    for i in range(0, length, 16):
+        if i == length -1:
+            print("%05x   %s"%(i, ' '.join([ '%02x'%(j) for j in data[i:] ] )))
+        else:
+            # print("%x %s"%(i*16, ' '.join(msg[i, i+16] )))
+            print("%05x   %s"%(i, ' '.join( [ '%02x'%(j) for j in data[i:i+16] ] ) ))
+
+def LOGV(*msg):
+    msg_info = ''
+    # for single_item in msg:
+    #     msg_info += str(single_item)
+    msg_info = [str(i) for i in msg ]
+    msg_info = ','.join(msg_info)
+
+    print_with_color(msg_info, bcolors.HEADER, tag = "VERB")
+
+def LOGI(*msg):
+    msg_info = ''
+    for single_item in msg:
+        msg_info += str(single_item)
+    print_with_color(msg_info, bcolors.HEADER, tag = "INFO")
+
+def LOGW(*msg):
+    msg_info = ''
+    for single_item in msg:
+        msg_info += str(single_item)
+    print_with_color(msg_info, bcolors.HEADER, tag = "WARN")
 
 
-def LOGE(msg):
-    print_with_color(msg, bcolors.FAIL, "ERRO")
+def LOGE(*msg):
+    msg_info = ''
+    for single_item in msg:
+        msg_info += str(single_item)
+    print_with_color(msg_info, bcolors.HEADER, tag = "ERRO")
 
 def get_appoint_color_text(msg='', fg='', bg='', bold=True):
     fg_color = {'black': 30, 'red': 31, 'green': 32, 'yellow': 33, 'blue': 34, 'purple': 35, 'cyan': 36, 'white': 37}
@@ -146,6 +183,17 @@ def get_color_text(msg, color, time_flag=False, tag='', intent=False, aligh_len=
 
 def print_with_color(msg, color, time_flag=True, tag=''):
     time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    LOG_LEVEL_DIC = {
+        'ERRO' : 1,
+        'WARN' : 2,
+        'INFO' : 3,
+        'VERB' : 4
+    }
+
+    if LOG_LEVEL < LOG_LEVEL_DIC.get(tag):
+        return 
+
     if tag:
         log = '{:<20}\t{:<10}\t{}'.format(time, f'[{tag}]', msg)
     else:

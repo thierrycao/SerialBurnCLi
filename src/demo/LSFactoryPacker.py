@@ -456,7 +456,7 @@ RELEASE:\n
 Any Way Get This RC Package:
 http://pan.iflytek.com:80/link/C68F68544BFF417F8FA9CC37894C4C7C 密码:47m1)
 '''
-    description = logger.get_yellow_text('v1.7 releases on 2021/4/8 by theirrycao, 支持芯片烧录，模块烧录，两者区分不同的芯片检测固件')
+    description = logger.get_yellow_text(description)
     return description
 
 if __name__ == '__main__':

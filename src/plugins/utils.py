@@ -36,6 +36,17 @@ def get_platform_system():
 def isPlatformWin():
     return True if get_platform_system() == 'Windows' else False
 
+def run_shell(cmd):
+    import subprocess
+    def runcmd(command):
+        ret = subprocess.run(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding="utf-8",timeout=1)
+        if ret.returncode == 0:
+            print("success:",ret)
+        else:
+            print("error:",ret)
+    runcmd(cmd)
+
+
 def bytes2Int(bytes_t, signed=True):
     return int.from_bytes(bytes_t, 'little', signed=signed)
 def dirs(dirs):
@@ -194,11 +205,60 @@ def write_bin_list_to_file(src_list, output='output.bin'):
         with open(output, 'wb') as wf:
             if isinstance(src_list, list):
                 for i in src_list:
-                    wf.write(i)
+                    # wf.write(bytes(i))
+                    wf.write(i.to_bytes(1, byteorder='little', signed=True))
             else:
                 wf.write(bytes(src_list))
     except Exception as err:
         print(err)
+
+def write_bin_list_to_bmp(src_list, width, height, save_path=''):
+    from PIL import Image
+    import numpy as np
+    # import matplotlib.pyplot as plt
+    # width = 46
+    # height = 180
+    # img_ori = open('1_46_180.bin', 'rb')
+    # img_ori_data = img_ori.read()
+    # print('len:', len(img_ori_data))
+
+    img_gray_8 = Image.new('L', (width, height), 128)
+
+    img = np.array(img_gray_8)
+
+    print(img.shape)
+    #rows,cols,dims = img.shape
+
+    for i in range(height):
+        for j in range(width):
+            img[i, j] = src_list[i*width + j]
+        
+    # print('end')
+    # save_path = '1.bmp'
+    im = Image.fromarray(img)
+    im.convert('L').save(save_path) # 保存为灰度图(8-bit)
+
+def connect_bmp(info_list, save_path=''):
+    from PIL import Image
+
+    # width = 500
+    width = 0
+    width_index = 0
+    height = 220
+
+    for i in info_list:
+        width += i.get('width')
+    # 创建空白图片
+    img_gray_8 = Image.new('L', (width, height), 128)
+    for index,value in enumerate(info_list):
+        img = Image.open(value.get('file_path')).convert("L")
+        img_gray_8.paste(img, (width_index , 20 ))
+        # img_gray_8.paste(img, (width_index , 20 + value.get('yset')))
+        width_index += value.get('width') 
+        # img_gray_8.paste(img, (width_index + value.get('xset'), 20 + value.get('yset')))
+        # width_index += value.get('width') + value.get('xset')
+
+    img_gray_8.save(save_path)
 
 def write_str_list_to_file(src_list, output='output.txt', split_char='\n'):
     """[write_str_list_to_file]
@@ -331,7 +391,10 @@ def read_list_from_csv(src_file, column_num=0):
             obj = csv.reader(cf)
             for i in obj:
                 # print(type(i), i)
-                lines.append(i[column_num])
+                if column_num == -1:
+                    lines.append(i)
+                else:
+                    lines.append(i[column_num])
             
     except Exception as e:
         print(type(e), e)
