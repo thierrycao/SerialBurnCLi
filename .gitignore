@@ -3,3 +3,4 @@ src/build/
 src/__pycache__/
 dist/specs/
 src/LSFactoryPacker.spec
+src/iBurn.spec

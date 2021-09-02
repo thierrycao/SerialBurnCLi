@@ -69,20 +69,47 @@ def LOGB(msg):
 def LOGIG(msg):
     print_with_color(msg, bcolors.OKGREEN, "INFO")
 
-def print_hex(*msg):
-    # print(type(msg))
-    length = len(*msg)
-    data = []
-    # print('hhhh', length)
+def print_hex(*args, **kargs):
 
-    if isinstance(*msg, list):
-        data = list(*msg)
+    from functools import reduce
+    
+    # print(type(args))
+    length = len(*args)
+    data = []
+
+    if length <= 0:
+        return
+
+    # print('hhhh', length)
+    sep_head = ' '
+    sep = ' '
+    head = None
+
+    if kargs:
+        if 'sep' in kargs.keys():
+            sep = kargs.get('sep')
+        if 'head' in kargs.keys():
+            head = kargs.get('head')
+            max_head_len = reduce(lambda x, y: x if (x > y) else y, [ len(i) for i in head ] )
+            sep_head = sep
+            if max_head_len > 2:
+                sep = ' '* (max_head_len - 2 + 1)
+
+            # print(args)
+            
+
+    
+    if head:
+        LOGR("%-5s   %s"%('head', sep_head.join(head)))
+
+    if isinstance(*args, list):
+        data = list(*args)
     for i in range(0, length, 16):
         if i == length -1:
-            print("%05x   %s"%(i, ' '.join([ '%02x'%(j) for j in data[i:] ] )))
+            LOGR("%05x   %s"%(i, sep.join([ '%02x'%(j) for j in data[i:] ] )))
         else:
-            # print("%x %s"%(i*16, ' '.join(msg[i, i+16] )))
-            print("%05x   %s"%(i, ' '.join( [ '%02x'%(j) for j in data[i:i+16] ] ) ))
+            # print("%x %s"%(i*16, ' '.join(args[i, i+16] )))
+            LOGR("%05x   %s"%(i, sep.join( [ '%02x'%(j) for j in data[i:i+16] ] ) ))
 
 def LOGV(*msg):
     msg_info = ''
@@ -181,7 +208,7 @@ def get_color_text(msg, color, time_flag=False, tag='', intent=False, aligh_len=
    
     return text
 
-def print_with_color(msg, color, time_flag=True, tag=''):
+def print_with_color(msg, color, time_flag=True, tag='INFO'):
     time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     LOG_LEVEL_DIC = {

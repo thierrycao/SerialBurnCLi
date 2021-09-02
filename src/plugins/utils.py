@@ -31,7 +31,7 @@ def is_python2():
 #         return int(data.hex(), 16)
 #     return None
 def get_platform_system():
-    return platform.system()
+    return platform.system().lower()
 
 def isPlatformWin():
     return True if get_platform_system() == 'Windows' else False
@@ -125,6 +125,24 @@ def get_file_suffix(path):
 def get_file_prefix(path):
     return os.path.splitext(os.path.basename(path))[0]
 
+def read_hex_from_bin(src_file):
+    """[read_list_from_txt]
+
+    Args:
+        src_file ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    if not os.path.isfile(src_file):
+        return []
+    line = []
+    try:
+        with open(src_file, 'rb') as rf:
+            line = list(bytearray.fromhex(rf.read().hex()))
+            return line
+    except Exception as err:
+        print(err)
 
 def read_list_from_txt(src_file):
     """[read_list_from_txt]
