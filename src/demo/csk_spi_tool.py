@@ -39,7 +39,7 @@ if os.name == 'posix':
 else:
     from plugins import console as console
 
-def exit_app(_signum, _frame):
+def exit_app(_signum=0, _frame=0):
     import traceback
     try:
         # 等一等子线程销毁
@@ -149,6 +149,7 @@ def get_spi_rda_data_index(index, frame_list):
 def get_spi_frame_data(index, frame_list):
     local_width = get_spi_frame_width(index, frame_list)
     local_heigh = get_spi_frame_heigh(index, frame_list)
+    local_checksum = get_spi_frame_checksum(index, frame_list)
 
     if GLOMAL_SPI_NORMAL:
         return [ get_spi_frame_mosi_data(i) for i in frame_list[index + global_frame_head_len : index + global_frame_head_len + local_width * local_heigh] ]
@@ -183,8 +184,21 @@ def get_spi_frame_data(index, frame_list):
             continue
         frame_data.append(value)
     logger.LOGV('frame_data', 'len:', len(frame_data), 'line_count:', line_count) 
+    
+    
+    local_cal_checksum = calc_list_sum(frame_data) & 0xFFFF
+    print(f'spi_checksum:{local_checksum}, calc_checksum:{local_cal_checksum}')
+
+    if local_checksum != local_cal_checksum:
+        logger.LOGE('SPI checksum fails')
+        exit_app()
+
     return frame_data
 
+def calc_list_sum(list_data):
+    from functools import reduce
+    from operator import add
+    return reduce(add, list_data)
 
 def camera_spi_parse(frame, index, frame_list):
     global global_frame_count
@@ -242,7 +256,30 @@ def generate_binary_images(frame_data, output):
 
 def generate_stitch_image(frame_info, output):
     utils.connect_bmp(frame_info, output)
-    
+
+
+def get_file_full_path(file_dir): 
+    L=[] 
+    for root, dirs, files in os.walk(file_dir):
+        for file in files:
+            if os.path.splitext(file)[1] == '.jpg' or os.path.splitext(file)[1] == '.bmp':
+                L.append(os.path.join(root, file))
+    return L   
+
+def stitch_image(pics_dir):
+
+    images_list = get_file_full_path(pics_dir)
+    images_list = sorted(images_list, key = lambda f: os.path.splitext(os.path.basename(f))[0] )
+
+    # print(images_list)
+    if images_list:
+        utils.dirs(global_output_directory.get('stitching_images').get('dir'))
+        utils.stitch_image_long_figure(images_list, global_output_directory.get('stitching_images').get('file'))
+
+        print('拼接完成=> {} '.format(global_output_directory.get('stitching_images').get('file')))
+    else:
+        print(f'拼接失败 目标文件夹: {pics_dir}', images_list)
+
 
 def app_main(file_name):
     if not os.path.isfile(file_name):
@@ -273,12 +310,12 @@ def parse_user_choice():
     try:
         parser = argparse.ArgumentParser(description='欢迎使用本打包工具')
         # parser.add_argument("-c", type=int, choices=[1,2], help="芯片类型[1:300x 2:4002][已废弃，使用默认资源，不支持修改]")
-        parser.add_argument("-p", type=str, required = True, choices=['spi','rda'], help="协议形式: spi 或者 rda")
-        parser.add_argument("-f", type=str, required = True, help="逻辑分析仪协议导出数据[*.csv]")
+        parser.add_argument("-p", type=str, required = False, choices=['spi','rda'], help="协议形式: spi 或者 rda")
+        parser.add_argument("-f", type=str, required = False, help="逻辑分析仪协议导出数据[*.csv]")
+        parser.add_argument("-d", type=str, required = False, help="待拼接图片文件夹")
         parser.add_argument("-v", action="version", version=version_print())
         
         args = parser.parse_args()
-        print(args)
         # args = parser.parse_args(choice.split())
     # args = parser.parse_args(['-main', './main.bin', '-cmd', './cmd.bin', '-bias', './bias.bin', '-mlp', './mlp.bin'])
     except Exception as e:
@@ -293,11 +330,18 @@ def main():
 
     args = parse_user_choice()
     if not args:
+        print('缺乏参数')
         return
     GLOMAL_SPI_NORMAL = True if args.p == 'spi' else False
 
     logger.LOGI(args)
-    app_main(args.f)
+    if args.f and os.path.isfile(args.f):
+        app_main(args.f)
+    elif args.d and os.path.isdir(args.d):
+        # print(stitch_image)
+        stitch_image(args.d)
+    elif not os.path.isdir(args.d):
+        print(f'不存在: {args.d}这个文件夹')
 
 
 if __name__ == '__main__':

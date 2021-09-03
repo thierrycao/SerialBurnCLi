@@ -260,6 +260,29 @@ def connect_bmp(info_list, save_path=''):
 
     img_gray_8.save(save_path)
 
+def stitch_image_long_figure(image_dir, save_path=''):
+    from PIL import Image
+    total_width = 0
+    total_height = 220
+    width_index = 0
+
+    image_list = []
+
+    for i in image_dir:
+        width, height = Image.open(i).size
+        total_width += width
+        image_list.append({'file_path': i, 'width': width, 'height': height})
+
+    img_gray_8 = Image.new('L', (total_width, total_height), 128)
+    for value in image_list:
+        img = Image.open(value.get('file_path')).convert("L")
+        img_gray_8.paste(img, (width_index , 20 ))
+        width_index += value.get('width')
+
+    img_gray_8.save(save_path)
+
+
+
 def write_str_list_to_file(src_list, output='output.txt', split_char='\n'):
     """[write_str_list_to_file]
 
