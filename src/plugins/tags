@@ -1,0 +1,223 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+BOLD	logger.py	/^    BOLD = '\\033[1m'$/;"	v	class:bcolors
+BOLDBLUE	logger.py	/^    BOLDBLUE = '\\033[1;94m'$/;"	v	class:bcolors
+BOLDGREEN	logger.py	/^    BOLDGREEN = '\\033[1;92m'$/;"	v	class:bcolors
+BOLDPURPLE	logger.py	/^    BOLDPURPLE = '\\033[1;94m'$/;"	v	class:bcolors
+BOLDRED	logger.py	/^    BOLDRED = '\\033[1;91m'$/;"	v	class:bcolors
+BOLDYELLOW	logger.py	/^    BOLDYELLOW = '\\033[1;93m'$/;"	v	class:bcolors
+Back	nblog.py	/^from colorama import init, Fore, Back, Style$/;"	i
+CSI	console_posix.py	/^CSI = '\\033['$/;"	v
+Control	keyboard.py	/^class Control():$/;"	c
+DOWN	keyboard.py	/^    DOWN    = 2$/;"	v	class:Direction
+Direction	keyboard.py	/^class Direction(enum.Enum):$/;"	c
+ENDC	logger.py	/^    ENDC = '\\033[0m'$/;"	v	class:bcolors
+FAIL	logger.py	/^    FAIL = '\\033[91m'$/;"	v	class:bcolors
+Fore	logger.py	/^from colorama import init, Fore$/;"	i
+Fore	nblog.py	/^from colorama import init, Fore, Back, Style$/;"	i
+HEADER	logger.py	/^    HEADER = '\\033[95m'$/;"	v	class:bcolors
+Image	utils.py	/^    from PIL import Image$/;"	i
+Key	keyboard.py	/^from pynput.keyboard import Key,Listener$/;"	i
+LEFT	keyboard.py	/^    LEFT    = 3$/;"	v	class:Direction
+LOGB	logger.py	/^def LOGB(msg):$/;"	f
+LOGE	logger.py	/^def LOGE(*msg):$/;"	f
+LOGG	logger.py	/^def LOGG(msg):$/;"	f
+LOGI	logger.py	/^def LOGI(*msg):$/;"	f
+LOGIB	logger.py	/^def LOGIB(msg):$/;"	f
+LOGIG	logger.py	/^def LOGIG(msg):$/;"	f
+LOGR	logger.py	/^def LOGR(msg):$/;"	f
+LOGV	logger.py	/^def LOGV(*msg):$/;"	f
+LOGW	logger.py	/^def LOGW(*msg):$/;"	f
+LOG_ERROR	logger.py	/^LOG_ERROR = 1$/;"	v
+LOG_INFO	logger.py	/^LOG_INFO = 3$/;"	v
+LOG_LEVEL	logger.py	/^LOG_LEVEL= 4$/;"	v
+LOG_VERBOSE	logger.py	/^LOG_VERBOSE = 4$/;"	v
+LOG_WARN	logger.py	/^LOG_WARN = 2$/;"	v
+Listener	keyboard.py	/^from pynput.keyboard import Key,Listener$/;"	i
+OKBLUE	logger.py	/^    OKBLUE = '\\033[94m'$/;"	v	class:bcolors
+OKGREEN	logger.py	/^    OKGREEN = '\\033[92m'$/;"	v	class:bcolors
+OKPURPLE	logger.py	/^    OKPURPLE = '\\033[35m'$/;"	v	class:bcolors
+OKRED	logger.py	/^    OKRED = '\\033[32m'$/;"	v	class:bcolors
+OKYELLOW	logger.py	/^    OKYELLOW = '\\033[34m'$/;"	v	class:bcolors
+RIGHT	keyboard.py	/^    RIGHT   = 4$/;"	v	class:Direction
+SetConsoleCursorPosition	console.py	/^def SetConsoleCursorPosition(stream_id = win32.STDOUT, position = (1,1)):$/;"	f
+Style	nblog.py	/^from colorama import init, Fore, Back, Style$/;"	i
+TITILEBLUE	logger.py	/^    TITILEBLUE = '\\033[1;36;40m'$/;"	v	class:bcolors
+TITILEGREEN	logger.py	/^    TITILEGREEN = '\\033[1;32;40m'$/;"	v	class:bcolors
+TITILEPURPLE	logger.py	/^    TITILEPURPLE = '\\033[1;35;40m'$/;"	v	class:bcolors
+TITILEYELLOW	logger.py	/^    TITILEYELLOW = '\\033[1;33;40m'$/;"	v	class:bcolors
+UNDERLINE	logger.py	/^    UNDERLINE = '\\033[4m'$/;"	v	class:bcolors
+UP	keyboard.py	/^    UP      = 1$/;"	v	class:Direction
+USBError	lsusb.py	/^from usb.core import USBError$/;"	i
+WARNING	logger.py	/^    WARNING = '\\033[93m'$/;"	v	class:bcolors
+__call__	utils.py	/^    def __call__(self, parser, namespace, values, option_string=None):$/;"	m	class:readable_dir	file:
+__init__	keyboard.py	/^    def __init__(self):$/;"	m	class:Control
+__init__	nblog.py	/^    def __init__(self, level=logging.INFO):$/;"	m	class:logger
+_clean_str	lsusb.py	/^def _clean_str(s):$/;"	f
+_get_dev_string_info	lsusb.py	/^def _get_dev_string_info(device):$/;"	f
+add_json	utils.py	/^def add_json(src_file='', output_file=''):$/;"	f
+aligns	logger.py	/^    def aligns(msg, aligh_len=16):$/;"	f	function:get_color_text
+argparse	utils.py	/^import argparse$/;"	i
+audio_task	raw_input.py	/^import audio_task.utils.logger as logger$/;"	i
+bcolors	logger.py	/^class bcolors:$/;"	c
+bytes2Int	utils.py	/^def bytes2Int(bytes_t, signed=True):$/;"	f
+ch	nblog.py	/^    ch = logging.StreamHandler()$/;"	v	class:logger
+colorama	console.py	/^import colorama$/;"	i
+colorama	nblog.py	/^import colorama$/;"	i
+connect_bmp	utils.py	/^def connect_bmp(info_list, save_path=''):$/;"	f
+copy_files_to_target_dir	utils.py	/^def copy_files_to_target_dir(src_files, target_dir):$/;"	f
+cp_rf	utils.py	/^def cp_rf(from_dir, to_dir, target='dir', forced = False):$/;"	f
+critical	nblog.py	/^    def critical(self, message):$/;"	m	class:logger
+csv	utils.py	/^import csv, shutil, json$/;"	i
+ctypes	console.py	/^import ctypes$/;"	i
+cursor_clean_screen	console_posix.py	/^def cursor_clean_screen():$/;"	f
+cursor_prev_line	console.py	/^    def cursor_prev_line():$/;"	f	function:process_posix
+cursor_prev_line	console_posix.py	/^def cursor_prev_line():$/;"	f
+datetime	logger.py	/^import datetime$/;"	i
+debug	nblog.py	/^    def debug(self, message):$/;"	m	class:logger
+dirs	common.py	/^def dirs(dirs):$/;"	f
+dirs	utils.py	/^def dirs(dirs):$/;"	f
+disk_partitions	lsusb.py	/^    from psutil import disk_partitions$/;"	i
+dprint	nblog.py	/^def dprint(text, *args, **kwargs):$/;"	f
+enum	keyboard.py	/^import enum$/;"	i
+eprint	nblog.py	/^def eprint(text, *args, **kwargs):$/;"	f
+erase_line	console.py	/^def erase_line(handler = terminal, stream_id = win32.STDOUT, row = 0, col=0):$/;"	f
+erase_screen	console.py	/^def erase_screen(handler = terminal, mode = 0):$/;"	f
+erase_screen	console_posix.py	/^def erase_screen(mode = 0):$/;"	f
+error	nblog.py	/^    def error(self, message):$/;"	m	class:logger
+extpath	common.py	/^def extpath(path):$/;"	f
+find_file_by_content	utils.py	/^def find_file_by_content(path, keyword):$/;"	f
+find_file_by_fileName	utils.py	/^def find_file_by_fileName(path, keyword):$/;"	f
+fontColor	nblog.py	/^    def fontColor(self, color):$/;"	m	class:logger
+functions	utils.py	/^def functions():$/;"	f
+get_abs_path	utils.py	/^def get_abs_path(*param):$/;"	f
+get_appoint_color_text	logger.py	/^def get_appoint_color_text(msg='', fg='', bg='', bold=True):$/;"	f
+get_blue_text	logger.py	/^def get_blue_text(msg, bold=True, intent=False):$/;"	f
+get_blue_title	logger.py	/^def get_blue_title(msg):$/;"	f
+get_color_text	logger.py	/^def get_color_text(msg, color, time_flag=False, tag='', intent=False, aligh_len=24):$/;"	f
+get_commands_len	utils.py	/^def get_commands_len():$/;"	f
+get_commands_list	utils.py	/^def get_commands_list():$/;"	f
+get_current_before_cells	console.py	/^def get_current_before_cells(stream_id):$/;"	f
+get_drives	lsusb.py	/^        def get_drives():$/;"	f	function:get_udisk
+get_file_prefix	utils.py	/^def get_file_prefix(path):$/;"	f
+get_file_suffix	utils.py	/^def get_file_suffix(path):$/;"	f
+get_green_text	logger.py	/^def get_green_text(msg, bold=False, intent=False):$/;"	f
+get_green_title	logger.py	/^def get_green_title(msg):$/;"	f
+get_partition	lsusb.py	/^def get_partition():$/;"	f
+get_platform_system	utils.py	/^def get_platform_system():$/;"	f
+get_purple_text	logger.py	/^def get_purple_text(msg, bold=True, intent=False):$/;"	f
+get_purple_title	logger.py	/^def get_purple_title(msg):$/;"	f
+get_realpath_file_base_dir	utils.py	/^def get_realpath_file_base_dir(src_file):$/;"	f
+get_red_text	logger.py	/^def get_red_text(msg, bold=True, intent=False):$/;"	f
+get_spec_type_file_from_dir	utils.py	/^def get_spec_type_file_from_dir(dir_path, index = 1, type='ini'):$/;"	f
+get_text_file_base_dir	utils.py	/^def get_text_file_base_dir(text):$/;"	f
+get_text_file_base_name	utils.py	/^def get_text_file_base_name(text):$/;"	f
+get_udisk	lsusb.py	/^def get_udisk():$/;"	f
+get_udisk_partition	lsusb.py	/^def get_udisk_partition():$/;"	f
+get_usb_devices	lsusb.py	/^def get_usb_devices():$/;"	f
+get_usb_devlists	lsusb.py	/^def get_usb_devlists():$/;"	f
+get_yellow_text	logger.py	/^def get_yellow_text(msg, bold=True, intent=False):$/;"	f
+get_yellow_title	logger.py	/^def get_yellow_title(msg):$/;"	f
+getdir	keyboard.py	/^    def getdir(self):$/;"	m	class:Control
+global_commands	utils.py	/^global_commands = []$/;"	v
+info	nblog.py	/^    def info(self, message):$/;"	m	class:logger
+init	logger.py	/^from colorama import init, Fore$/;"	i
+init	nblog.py	/^from colorama import init, Fore, Back, Style$/;"	i
+init_log_file	logger.py	/^def init_log_file(path):$/;"	f
+input_int	raw_input.py	/^def input_int(desc, retryTimes):$/;"	f
+input_options	raw_input.py	/^def input_options(desc, values, retryTimes):$/;"	f
+input_path	raw_input.py	/^def input_path(desc, retryTimes):$/;"	f
+input_str	raw_input.py	/^def input_str(desc):$/;"	f
+input_text	utils.py	/^def input_text(notice, color = False):$/;"	f
+iprint	nblog.py	/^def iprint(text, *args, **kwargs):$/;"	f
+isPlatformWin	utils.py	/^def isPlatformWin():$/;"	f
+is_csv_file	utils.py	/^def is_csv_file(src_file):$/;"	f
+is_json_file	utils.py	/^def is_json_file(src_file):$/;"	f
+is_keyword_in_text	utils.py	/^def is_keyword_in_text(keyword, text):$/;"	f
+is_number	utils.py	/^def is_number(s):$/;"	f
+is_python2	utils.py	/^def is_python2():$/;"	f
+is_spec_type	utils.py	/^def is_spec_type(path, type=''):$/;"	f
+is_txt_file	utils.py	/^def is_txt_file(src_file):$/;"	f
+is_udisk	lsusb.py	/^        def is_udisk(drives):$/;"	f	function:get_udisk
+is_windows	common.py	/^def is_windows():$/;"	f
+is_windows	utils.py	/^def is_windows():$/;"	f
+json	utils.py	/^import csv, shutil, json$/;"	i
+load_file_dump_bytes	utils.py	/^def load_file_dump_bytes(src_file=''):$/;"	f
+load_json_file_dump_bytes	utils.py	/^def load_json_file_dump_bytes(src_file=''):$/;"	f
+log_file	logger.py	/^log_file = None$/;"	v
+logger	lsusb.py	/^from plugins import logger $/;"	i
+logger	nblog.py	/^class logger(object):$/;"	c
+logger	nblog.py	/^logger = logger(level=logging.INFO)$/;"	v
+logger	raw_input.py	/^import audio_task.utils.logger as logger$/;"	i
+logger	utils.py	/^from plugins import logger $/;"	i
+logging	nblog.py	/^import logging$/;"	i
+main	console.py	/^def main():$/;"	f
+main	utils.py	/^def main():$/;"	f
+merge_section_appoint	utils.py	/^def merge_section_appoint(appoint_id, appoint_id_2, list1, list2):$/;"	f
+np	utils.py	/^    import numpy as np$/;"	i
+on_press	keyboard.py	/^        def on_press(key):$/;"	f	function:Control.getdir
+os	common.py	/^import os$/;"	i
+os	logger.py	/^import os$/;"	i
+os	nblog.py	/^import os$/;"	i
+os	raw_input.py	/^import os$/;"	i
+os	utils.py	/^import os, sys, platform$/;"	i
+platform	common.py	/^import platform$/;"	i
+platform	utils.py	/^import os, sys, platform$/;"	i
+pop_section_appoint	utils.py	/^def pop_section_appoint(appoint_id, lt):$/;"	f
+pop_section_appoint_from_json	utils.py	/^def pop_section_appoint_from_json(src_file, section):$/;"	f
+print_function	utils.py	/^def print_function():$/;"	f
+print_hex	logger.py	/^def print_hex(*args, **kargs):$/;"	f
+print_local_position	console.py	/^def print_local_position(handler, stream_id):$/;"	f
+print_with_color	logger.py	/^def print_with_color(msg, color, time_flag=False, tag='INFO'):$/;"	f
+process_posix	console.py	/^def process_posix():$/;"	f
+psutil	lsusb.py	/^    import psutil$/;"	i
+read_data_from_file	utils.py	/^def read_data_from_file(src_file):$/;"	f
+read_from_json_file_as_dict	utils.py	/^def read_from_json_file_as_dict(src_file):$/;"	f
+read_hex_from_bin	utils.py	/^def read_hex_from_bin(src_file):$/;"	f
+read_list_from_csv	utils.py	/^def read_list_from_csv(src_file, column_num=0):$/;"	f
+read_list_from_txt	utils.py	/^def read_list_from_txt(src_file):$/;"	f
+read_section_data_from_json	utils.py	/^def read_section_data_from_json(src_file, section):$/;"	f
+readable_dir	utils.py	/^class readable_dir(argparse.Action):$/;"	c
+reduce	logger.py	/^    from functools import reduce$/;"	i
+register_command	utils.py	/^def register_command(description, callback):$/;"	f
+restore_last_position	console.py	/^def restore_last_position(row = 0, col = 0):$/;"	f
+restore_last_position	console_posix.py	/^def restore_last_position(row = 0 , col = 0):$/;"	f
+rm_rf	utils.py	/^def rm_rf(dirs, forced=False):$/;"	f
+run_shell	utils.py	/^def run_shell(cmd):$/;"	f
+runcmd	utils.py	/^    def runcmd(command):$/;"	f	function:run_shell
+search	utils.py	/^def search(root, target):$/;"	f
+search_dir	utils.py	/^def search_dir(root, target):$/;"	f
+search_files_by_keyword	utils.py	/^def search_files_by_keyword(path='', keyword=''):$/;"	f
+shutil	utils.py	/^import csv, shutil, json$/;"	i
+str2int	utils.py	/^def str2int(s):$/;"	f
+strip_json	utils.py	/^def strip_json(src_file='', output_file=''):$/;"	f
+subprocess	utils.py	/^    import subprocess$/;"	i
+sys	console.py	/^    import sys$/;"	i
+sys	console_posix.py	/^import sys$/;"	i
+sys	utils.py	/^import os, sys, platform$/;"	i
+terminal	console.py	/^    terminal = colorama.winterm.WinTerm()$/;"	v
+terminal	console.py	/^terminal = None$/;"	v
+time	console.py	/^    import time$/;"	i
+time	console.py	/^import time$/;"	i
+time	console_posix.py	/^import time$/;"	i
+time	lsusb.py	/^    import time$/;"	i
+time	nblog.py	/^import time$/;"	i
+time	utils.py	/^import time$/;"	i
+unicodedata	utils.py	/^        import unicodedata$/;"	i
+usb	lsusb.py	/^import usb$/;"	i
+user_choice	utils.py	/^def user_choice(notice, cond, param, isDigit = False, reset = False, color = False, debug=False):$/;"	f
+utils	raw_input.py	/^import audio_task.utils.logger as logger$/;"	i
+wait_rotate	lsusb.py	/^def wait_rotate(header=''):$/;"	f
+warning	nblog.py	/^    def warning(self, message):$/;"	m	class:logger
+win32	console.py	/^from colorama.winterm import win32 as win32$/;"	i
+win32file	lsusb.py	/^        import win32file$/;"	i
+wintypes	console.py	/^from ctypes import wintypes$/;"	i
+wprint	nblog.py	/^def wprint(text, *args, **kwargs):$/;"	f
+write_bin_list_to_bmp	utils.py	/^def write_bin_list_to_bmp(src_list, width, height, save_path=''):$/;"	f
+write_bin_list_to_file	utils.py	/^def write_bin_list_to_file(src_list, output='output.bin'):$/;"	f
+write_dict_in_json_file	utils.py	/^def write_dict_in_json_file(dict_data, output_file):$/;"	f
+write_str_list_to_file	utils.py	/^def write_str_list_to_file(src_list, output='output.txt', split_char='\\n'):$/;"	f

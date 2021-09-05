@@ -94,8 +94,28 @@ def is_number(s):
         return True
     except (TypeError, ValueError):
         pass
+
+    try:
+        int(s, 16)
+        return True 
+    except (TypeError, ValueError):
+        pass
  
     return False
+
+def str2int(s):
+    if is_number(s):
+        try:
+            ret = int(s)
+            return ret 
+        except (TypeError, ValueError):
+            pass 
+        try:
+            ret = int(s, 16)
+            return ret 
+        except (TypeError, ValueError):
+            pass 
+    return -1
 
 def is_csv_file(src_file):
     if not (src_file and os.path.isfile(src_file)):
@@ -665,11 +685,19 @@ def input_text(notice, color = False):
             # param = input(u'{}'.format(notice))
     return param
 
-def user_choice(notice, cond, param, reset = False, color = False, debug=False):
+def user_choice(notice, cond, param, isDigit = False, reset = False, color = False, debug=False):
     if reset:
         param = ''
+    if isDigit and is_number(param):
+        param = str2int(param)
+    elif isDigit:
+        param = None
     while not cond(param):
         param = input_text(notice, color = color)
+        if isDigit and is_number(param):
+            param = str2int(param)
+            if param == -1:
+                print('user_choice is error!')
         if debug:
             print(f'>>>你的输入为:{param}')
     return param

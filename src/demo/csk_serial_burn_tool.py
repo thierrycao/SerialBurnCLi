@@ -6,14 +6,13 @@
 #	> Created Time: Thu 13 Mar 2021 12:54:08 PM CST
 # ************************************************************************
 
-import os, sys, hashlib, signal, shutil, time
+import os, sys, time
 sys.path.append("..") 
 from plugins import utils as utils
 from plugins import logger as logger
 from serial import Serial
 import serial
-import serial.tools.list_ports
-import thread_pool
+# import thread_pool
 import threading
 from tqdm import tqdm
 
@@ -25,37 +24,22 @@ g_serial_print_funcname_dbg = False
 
 g_serial_status = 'uninit'
 
-
-
 serial_instances=[]
 preset_output_dir='output'
 output_dir='output'
-default_baud_rate=115200
+default_baud_rate=1536000
 
 global_big_end = 'little'
 
-global_output_directory = {
-    'cut_out_images': {
-        'dir': 'out/cut_out_images'
-    },
 
-    'stitching_images': {
-                            'dir':'out/stitching_images',
-                            'file': 'out/stitching_images/final.bmp'
-    },
-    'binary_images': {
-        'dir': 'out/binary_images'
-    }
-    
-}
 
-if os.name == 'posix':
-    from plugins import console_posix as console
-else:
-    from plugins import console as console
+# if os.name == 'posix':
+#     from plugins import console_posix as console
+# else:
+#     from plugins import console as console
 
 def exit_app(_signum = 0, _frame = 0):
-    import traceback
+    #import traceback
     try:
         # 等一等子线程销毁
         # time.sleep(0.5)
@@ -70,8 +54,10 @@ def exit_app(_signum = 0, _frame = 0):
         os._exit(0)
 
 def init():
-    signal.signal(signal.SIGINT, exit_app)
-    signal.signal(signal.SIGTERM, exit_app)
+    from signal import SIGINT, SIGTERM
+    from signal import signal
+    signal(SIGINT, exit_app)
+    signal(SIGTERM, exit_app)
 
 
 def is_little_endian():
@@ -91,7 +77,7 @@ def init_serial():
         serial_instance.start()
         serial_instance.mark_start()
         # serial_instances.append(serial_instance)
-        thread_pool.put_thread(serial_instance)
+        # thread_pool.put_thread(serial_instance)
     except Exception as err:
         logger.LOGE("初始化串口失败 {}".format(err))
         exit_app(1, 0)
@@ -108,6 +94,7 @@ class ReadSerialThread(threading.Thread):
         self.name = name
         self.serial = None
         self.serial_is_open = False
+        self.serial_com = None
         self.lock = threading.RLock()
 
         if serial_instance == None:
@@ -125,11 +112,12 @@ class ReadSerialThread(threading.Thread):
         global g_serial_baudrate
         if com == None:
             com = self.get_serial_ports()[0]
+            self.serial_com = com
         self.lock.acquire()
         if self.serial and isinstance(self.serial, serial.serialposix.Serial) and ( not self.serial_is_open ):
             self.deinit_serial()
             
-        logger.LOGB(f'init_serial>> com:{com}, baud:{baud}')
+        logger.LOGB(f'初始化串口>> 端口:{com}, 波特率:{baud}')
         self.serial = Serial(com, baud, timeout=0.1)
         self.serial_is_open = True
         self.lock.release()
@@ -141,13 +129,15 @@ class ReadSerialThread(threading.Thread):
         if self.serial and isinstance(self.serial, serial.serialposix.Serial) and self.serial_is_open:
             logger.LOGB('deinit_serial>>')
             self.serial_is_open = False
+            self.com = None
             self.lock.acquire()
             self.serial.close()
             self.lock.release()
             
         
     def get_serial_ports(self):
-        plist = list(serial.tools.list_ports.comports())
+        import serial.tools.list_ports as list_ports
+        plist = list(list_ports.comports())
         portList = list()
         # print([ i[0] for i in plist])
         for port in plist:
@@ -185,13 +175,16 @@ class ReadSerialThread(threading.Thread):
         log_file = os.path.join(output_dir, 'log', 'device_log', f'serial_1.log')
         utils.dirs(os.path.dirname(log_file))
         # log_file = os.path.join(output_dir, 'log', 'device_log', f'serial_{com}_{name}.log')
+        index = 0
+        time_stamp = 0
         with open(log_file, 'wb+') as file:
             while not end_read and self.is_running:
                 try:
                     if self.serial and isinstance(self.serial, serial.serialposix.Serial) and self.serial.isOpen() and self.serial_is_open:
                         self.lock.acquire()
                         if self.serial_is_open:
-                            tmp_msg = self.serial.readline()
+                            tmp_msg = self.serial.read_all()
+                            #tmp_msg = self.serial.readline()
                         else:
                             tmp_msg = ''
                         self.lock.release()
@@ -209,8 +202,24 @@ class ReadSerialThread(threading.Thread):
                                 self.com_msg.extend(tmp_msg_hex)
                         else:
                             time.sleep(0.01)
+                            '''
+                            time_stamp += 1
+                            if time_stamp >= 500:
+                                time_stamp = 0
+                                index = 0
+                            elif int(time_stamp%50) == 0:
+                                index += 1
+                                #print('time_stamp:', index)
+                            '''
                     else:
                         time.sleep(0.01)
+                        time_stamp += 1
+                        if time_stamp >= 500:
+                            time_stamp = 0
+                            index = 0
+                        elif int(time_stamp%50) == 0:
+                            index += 1
+                            logger.LOGW('\rserial is not open', end='')
                     # file.write(tmp_msg)
                     # file.flush()
                     # os.fsync(file.fileno())
@@ -351,7 +360,11 @@ class CSKBurnProtolClient():
                 logger.LOGE(f'parse_response: [{key}], pos or lens is over')
             else:
                 spec_data_list = data[response_map.get(key).get('pos'): response_map.get(key).get('pos') + response_map.get(key).get('lens')]
-                ret_data = self.get_hex_from_list(spec_data_list)
+                if 'md5' == key:
+                    spec_data_list.reverse()
+                    ret_data = self.get_hex_from_list(spec_data_list)
+                else:
+                    ret_data = self.get_hex_from_list(spec_data_list)
 
         return ret_data
 
@@ -428,19 +441,26 @@ class CSKBurnProtolClient():
 
         # 10毫秒之后读取结果
         time.sleep(0.01)
-
+        buf = []
         while True:
             res_slip_buf = self.serial_read()
-            if res_slip_buf and len(res_slip_buf) >= 10 + 2:
+            if timeout <= 0:
+                if res_slip_buf and len(res_slip_buf) >= 10 + 2:
+                    self.serial_swap()
+                    break
+                else:
+                    self.serial_swap()
+                    #print('buf: ', buf)
+                    return res_ret
+            elif res_slip_buf and len(res_slip_buf) >= 10 + 2:
                 self.serial_swap()
-                # print('time wasting:', timeout)
                 break
-            elif (not res_slip_buf) and timeout <= 0:
-                # print('timeout:', timeout)
-                return res_ret
+            elif res_slip_buf and len(res_slip_buf) < 10 + 2:
+                buf.extend(res_slip_buf)
 
-            timeout -= 0.01
-            time.sleep(0.01)
+            timeout -= 0.02
+            time.sleep(0.02)
+            #print('read:', timeout)
 
         res_raw_buf = self.slip_decode(res_slip_buf)
 
@@ -459,7 +479,7 @@ class CSKBurnProtolClient():
         res_ret['res_ret']['value'] = ret_value
         res_ret['res_ret']['size'] = ret_size
 
-        if (ret_size == 2 + 16) and command == self.get_req_command('FLASH_MD5SUM'):
+        if (ret_size == 2 + 16) and command == self.get_req_command('SPI_FLASH_MD5'):
             res_ret['res_ret']['md5'] = self.parse_response(res_raw_buf, 'md5')
         
         if ret_command == command and ret_direction == self.DIR_RES:
@@ -479,6 +499,8 @@ class CSKBurnProtolClient():
             return 0xFF
         if ret.get('res_ret').get('error'):
             logger.LOGE('错误: 指令 %02X 设备返回异常 0x%02X' %(command, ret.get('res_ret').get('code')))
+            logger.LOGE('错误: 指令 %02X 设备返回异常 ' %(command), ret)
+
         elif command == self.get_req_command('READ_REG'):
             return ret.get('res_ret').get('value')
 
@@ -496,11 +518,11 @@ class CSKBurnProtolClient():
         return wrapper
 
     @print_funcname
-    def cmd_sync(self, timeout = 0.01):
+    def cmd_sync(self, timeout = 0.3):
         # logger.LOGB('cmd_sync')
         cmd = [0x07, 0x07, 0x12, 0x20]
         cmd.extend([ 0x55 ] * 32)
-        return self.command(self.get_req_command('SYNC'),  cmd, 0, 0.5).get('ret')
+        return self.command(self.get_req_command('SYNC'),  cmd, 0, timeout).get('ret')
 
     @print_funcname
     def cmd_read_reg(self, reg):
@@ -583,7 +605,6 @@ class CSKBurnProtolClient():
 
     @print_funcname
     def cmd_flash_md5sum(self, address, size):
-
         
         address = self.get_bytes_hex_list(address, 4)
         size = self.get_bytes_hex_list(size, 4)
@@ -598,7 +619,9 @@ class CSKBurnProtolClient():
             return ''
         if ret.get('res_ret').get('error') != 0:
             logger.LOGE('错误: 设备返回异常 %02X%02X' %(ret.get('res_ret').get('error'), ret.get('res_ret').get('status')) )
-        return self.intList2hexString(ret.get('res_ret').get('md5'))
+
+        #return self.intList2hexString(ret.get('res_ret').get('md5'))
+        return hex(ret.get('res_ret').get('md5'))
 
     @print_funcname
     def cmd_flash_md5_challenge(self):
@@ -689,27 +712,6 @@ class CSKBurnProtolClient():
                 req_raw_buf.append(value)
         return req_raw_buf
 
-
-
-def clean_com_msg(com):
-    
-    if com and isinstance(com, ReadSerialThread):
-        com.swap()
-    else:
-        logger.LOGE(f'[clean_com_msg] Not Done')
-
-
-def swap_serial_msg():
-    if serial_instance:
-        serial_instance.swap()
-
-def read_serial_msg():
-    if serial_instance:
-        data = serial_instance.read()
-        if data and data.strip():
-            print('REC:' + data.strip().strip('\n'))
-            return data.strip().strip('\n')
-
 def write_serial_msg(msg):
     serial_instance.write(msg)
 
@@ -723,16 +725,19 @@ args_dict = {'loggers': []}
 
 
 def task_retry(func, count, notice = '完成了', param = None, time_sep = 0.5):
+    total_count = count
     while count > 0:
+        logger.LOGB(f'\r设备正在连接...[{count}/{total_count}]', end='')
         count -= 1
         if param:
             ret = func(param)
         else:
             ret = func()
         if ret == True:
-            logger.LOGB('%s '%notice)
+            logger.LOGB('\r%s '%notice, end='\n')
             return True
         time.sleep(time_sep)
+    logger.LOGE('失败了')
     return False
         
 def _serial_enter(instance = gSerialInstance, change_baud=True):
@@ -751,7 +756,7 @@ def _serial_enter(instance = gSerialInstance, change_baud=True):
     data = utils.read_hex_from_bin(g_burn_resource_dict.get('burner').get('file'))
     offset = 0
 
-    with tqdm(total = blocks + 1, desc= 'burner', leave = True, ncols = 100, unit='Blocks', unit_scale = True) as pbar:
+    with tqdm(total = blocks + 1, desc= 'burner', leave = True, ncols = 50, unit='Blocks', unit_scale = True) as pbar:
         for i in range(blocks):
             offset = RAM_BLOCK_SIZE * i
             length = RAM_BLOCK_SIZE
@@ -776,7 +781,7 @@ def _serial_enter(instance = gSerialInstance, change_baud=True):
         logger.LOGE('错误: 无法识别设备')
         return False
     if change_baud:
-        if not instance.cmd_change_baud(3000000):
+        if not instance.cmd_change_baud(default_baud_rate):
             logger.LOGE('错误: 无法设置串口速率')
             return False
     g_serial_status = 'enter'
@@ -790,18 +795,46 @@ def _serial_enter_no_change_baud(instance = gSerialInstance, change_baud=False):
     def _serial_enter_no_change_baud_():
         return _serial_enter(instance, change_baud)
     
-    if not task_retry(_serial_enter_no_change_baud_, 4, '连接成功'):
+    if not task_retry(_serial_enter_no_change_baud_, 4, '设备连接成功'):
         logger.LOGE('设备连接失败')
         return False
     else:
         return True
     
+def _serial_verify(addr, size, instance = gSerialInstance): 
+    global gSerialInstance  
+    if not instance:
+        instance = gSerialInstance 
+    if not g_serial_keep_enter():
+        return ''
+    #print('_serial_verify', 'addr', addr, 'size', size)
+    return instance.cmd_flash_md5sum(addr, size) 
+
+
+def g_serial_verify(partition_info):
+    if partition_info:
+        if not g_serial_keep_enter():
+            logger.LOGE('未进入ram模式,请先短接pb16或者检查串口是否正常连接')
+            return False
+    #serial_burn_status_show()
+    result_list = []
+    logger.LOGB('分区校验结果: ')
+    for p in partition_info: 
+        if isinstance(p, dict) and 'addr' in p.keys() and 'size' in p.keys():
+            ret = _serial_verify(p.get('addr'), p.get('size'))
+            if ret:
+                result = 'md5 (0x%08X-0x%08X): %s'%(p.get('addr'), p.get('size'), ret.replace('0x', '')) 
+                result_list.append([p.get('name'), result])
+            else:
+                result = 'md5 (0x%08X-0x%08X): %s'%(p.get('addr'), p.get('size'), 'serial_verify err: ' + ret)
+                result_list.append([p.get('name'), result])
+                logger.LOGE(result)
+    serial_burn_status_show(result_list)
     
 
-def g_serial_read_chipid(instance = gSerialInstance):
-    global gSerialInstance, g_serial_status
 
-    EFUSE_BASE = 0xF1800000
+def g_serial_keep_enter(instance = gSerialInstance):
+    global gSerialInstance, g_serial_status
 
     if not instance:
         instance = gSerialInstance
@@ -816,6 +849,18 @@ def g_serial_read_chipid(instance = gSerialInstance):
             return False
         if not _serial_enter_no_change_baud():
             return False
+    return True
+
+def g_serial_read_chipid(instance = gSerialInstance):
+    global gSerialInstance, g_serial_status
+
+    EFUSE_BASE = 0xF1800000
+
+    if not instance:
+        instance = gSerialInstance
+
+    if not g_serial_keep_enter():
+        return False
 
     id1 = instance.cmd_read_reg(EFUSE_BASE + 0x80 + 0x0A)
     if id1 == 0x00:
@@ -826,7 +871,7 @@ def g_serial_read_chipid(instance = gSerialInstance):
     if id0 == 0x00:
         return False
 
-    chipid = hex( (id0 << 32) | id1 ).strip('0x')
+    chipid = hex( (id0 << 32) | id1 ).replace('0x', '')
 
     logger.LOGB(f'chipid: {chipid}')
 
@@ -899,15 +944,17 @@ def burn_image(addr, data, lens, md5sum, instance = gSerialInstance):
 
     
 
-def g_serial_burn_partition(partition):
+def g_serial_burn_partition(partition, index_part=0, total_part=1):
     global g_burn_resource_dict, gSerialInstance
 
-    if partition and partition in g_burn_resource_dict.keys():
+    file_exist_lambda = lambda f: f and os.path.isfile(f)
+
+    if partition and partition in g_burn_resource_dict.keys() and file_exist_lambda(g_burn_resource_dict.get(partition).get('file')):
         md5sum = getmd5(g_burn_resource_dict.get(partition).get('file'))
         addr = g_burn_resource_dict.get(partition).get('addr')
         data = utils.read_hex_from_bin(g_burn_resource_dict.get(partition).get('file'))
         lens = len(data)
-        logger.LOGB('正在烧录分区 %d/%d… (0x%08X, %.2f KB)' %(0, 1, addr, lens/1024))
+        logger.LOGB('正在烧录分区 %d/%d… (0x%08X, %.2f KB)' %(index_part+1, total_part, addr, lens/1024))
         burn_image(addr, data, lens, md5sum)
 
 def g_serial_burn_lpk():
@@ -922,10 +969,10 @@ def g_serial_burn_lpk():
     logger.LOGB("3.正在读取芯片ID…")
     g_serial_read_chipid()
 
-    for key in g_burn_resource_dict.keys():
+    for index, key in enumerate(g_burn_resource_dict.keys()):
         if key == 'burner':
             continue
-        g_serial_burn_partition(key)
+        g_serial_burn_partition(key, index_part=index, total_part=len( [ ikey for ikey in g_burn_resource_dict.keys() if ikey != 'burner' ] ))
 
 
 def serial_status_set(fn):
@@ -949,7 +996,7 @@ def serial_connect():
             instance = gSerialInstance
         return instance.cmd_sync()
 
-    if not task_retry(_serial_connect, 4, '连接成功'):
+    if not task_retry(_serial_connect, 6, '设备同步成功'):
         logger.LOGE('设备连接失败')
         return False
     else:
@@ -987,6 +1034,29 @@ def g_serial_reboot(instance = gSerialInstance):
 
     return True
 
+def serial_burn_status_show(insert_row=None):
+    global gSerialInstance
+    import prettytable as pt
+    tb = pt.PrettyTable()
+    tb.field_names = ["名称", "详情"]
+    row_list = []
+    serial_info = ['串口状态', '打开:{}, 端口:{}, 波特率: {}'.format(gSerialInstance.serialInstance.serial_is_open, gSerialInstance.serialInstance.serial_com, default_baud_rate)]
+    #serial_info = ['串口状态','2']
+    row_list.append(serial_info)
+    if insert_row:
+        if isinstance(insert_row, list):
+            for item in insert_row:
+                if isinstance(item, list):
+                    row_list.append(item)
+                else:
+                    row_list.append(insert_row)
+                    break
+
+    for item in row_list:
+        tb.add_row(item)
+    print(tb)
+    return tb
+
 def command_prompt():
     import prettytable as pt
     tb = pt.PrettyTable()
@@ -994,12 +1064,13 @@ def command_prompt():
     tb.add_row(["1","设备连接", "c"])
     tb.add_row(["2","进入烧录", "e"])
     tb.add_row(["3","读取chipid", "r"])
-    tb.add_row(["4","烧录lpk资源", "l"])
-    tb.add_row(["5","烧录flashboot", "bf"])
-    tb.add_row(["6","烧录master", "bm"])
-    tb.add_row(["7","烧录respak", "br"])
-    tb.add_row(["8","烧录zero", "bz"])
-    tb.add_row(["9","重启", "rb"])
+    tb.add_row(["4","校验分区md5sum", "v"])
+    tb.add_row(["5","烧录lpk资源", "l"])
+    tb.add_row(["6","烧录flashboot", "bf"])
+    tb.add_row(["7","烧录master", "bm"])
+    tb.add_row(["8","烧录respak", "br"])
+    tb.add_row(["9","烧录zero", "bz"])
+    tb.add_row(["10","重启", "rb"])
     tb.add_row(["0","退出", "b"])
     tb.add_row(["*","查看当前波特率", "cb"])
     return tb
@@ -1018,12 +1089,57 @@ def app_main(argv):
         logger.LOGE('not found serial device, exit!')
         return
 
+
+def serial_burn_image(instance= gSerialInstance):
+    global gSerialInstance 
+    global g_burn_resource_dict
+    if not instance:
+        instance = gSerialInstance
+
+    if g_serial_status == 'connect':
+        if not serial_enter():
+            return False
+    elif g_serial_status == 'enter':
+        pass
+    else:
+        if not serial_connect():
+            return False
+        if not serial_enter():
+            return False
+
+    file_exist_lambda = lambda f: f and os.path.isfile(f)
+    burn_partition = []
+    for partition in ['flashboot', 'master', 'respak', 'zero']:
+        if partition and partition in g_burn_resource_dict.keys() and file_exist_lambda(g_burn_resource_dict.get(partition).get('file')):
+            burn_partition.append(partition)
+    for index_part, partition in enumerate(burn_partition):    
+        g_serial_burn_partition(partition, index_part=index_part, total_part=len(burn_partition))
+    
+    return True
+
 def command_menu(argv):
+
     if not argv.c:
         lambda_is_file_exist = lambda f: f and os.path.isfile(f)
         if lambda_is_file_exist(argv.l):
             g_serial_burn_lpk()
+        elif argv.f or argv.m or argv.r or argv.z:
+            serial_burn_image()
+        elif argv.verify:
+            partition_info = argv.verify
+
+            serial_verify_partition_info = [ partition_info[i:i+2] for i in range(0,len(partition_info),2) ]
+            serial_verify_partition_info_format = []
+
+            for partition_index, partition_info_item in enumerate(serial_verify_partition_info):
+                partition_addr = utils.user_choice('分区地址: ', lambda addr: addr is not None and addr >= 0x0 , partition_info_item[0], isDigit = True)
+                partition_size = utils.user_choice('分区大小: ', lambda addr: addr is not None and addr >= 0x0 , partition_info_item[1], isDigit = True)
+                serial_verify_partition_info_format.append({'name': f'分区{partition_index}', 'addr': partition_addr, 'size': partition_size})
+            #print(serial_verify_partition_info_format)
+            g_serial_verify(serial_verify_partition_info_format)
+            
         exit_app()
+    
 
     while True:
         print(command_prompt())
@@ -1037,8 +1153,14 @@ def command_menu(argv):
         elif choice == 'r':
             logger.LOGB("正在读取芯片ID…")
             g_serial_read_chipid()
+        elif choice == 'v':
+            logger.LOGB('正在进行校验分区操作')
+            partition_addr = utils.user_choice('分区地址: ', lambda addr: addr is not None and addr >= 0x0 , choice, isDigit = True, reset=True)
+            partition_size = utils.user_choice('分区大小: ', lambda addr: addr is not None and addr >= 0x0 , choice, isDigit = True, reset=True)
+            g_serial_verify([{'addr': partition_addr, 'size': partition_size}])
+
         elif choice == 'l':
-            logger.LOGB("即将烧录lpk资源…")
+            logger.LOGB("正在进行烧录lpk资源操作…")
             g_serial_burn_lpk()  
         elif choice == 'bf':
             logger.LOGB('正在烧录Flashboot…')
@@ -1058,7 +1180,8 @@ def command_menu(argv):
         elif choice == 'b' or choice == 'break':
             exit_app()
         else:
-            write_serial_msg(choice)
+            print(f'[invaid]: {choice}')
+            #write_serial_msg(choice)
         choice=''
         time.sleep(1)
 
@@ -1089,13 +1212,14 @@ def parse_user_choice():
         # parser.add_argument("-c", type=int, choices=[1,2], help="芯片类型[1:300x 2:4002][已废弃，使用默认资源，不支持修改]")
         parser.add_argument("-baudrate", type=int, choices=[9600, 115200, 1536000, 3000000], help="波特率")
         parser.add_argument("--c", action='store_true', help="进入交互模式")
+        parser.add_argument("-v", "--verify", dest="verify", nargs='+', help="校验分区md5sum")
         parser.add_argument("-b", type=str, help="burner资源")
         parser.add_argument("-f", type=str, help="flashboot资源")
         parser.add_argument("-m", type=str, help="master资源")
         parser.add_argument("-r", type=str, help="respak资源")
         parser.add_argument("-z", type=str, help="zero资源")
         parser.add_argument("-l", type=str, help="lpk资源")
-        parser.add_argument("-v", action="version", version=version_print())
+        parser.add_argument("-version", action="version", version=version_print())
         
         args = parser.parse_args()
         # print(args)
@@ -1158,18 +1282,19 @@ def init_burn_resource():
 
 
 def is_resource_exist(argv):
-    global g_burn_resource_dict
+    global g_burn_resource_dict, default_baud_rate
 
     lambda_is_file_exist = lambda f: f and os.path.isfile(f)
 
-    # if not lambda_is_file_exist(argv.b):
-    #     logger.LOGE('burner resource is not exist!')
-    #     return False
+    if not argv:
+        return False
+
+    if argv.baudrate:
+        default_baud_rate = argv.baudrate
 
     if lambda_is_file_exist(argv.l):
         load_lpk_resource(argv.l)
         return True
-
 
     # if not (lambda_is_file_exist(argv.f) or \
     #         lambda_is_file_exist(argv.m) or \
@@ -1197,7 +1322,7 @@ def main():
     argv = parse_user_choice()
     if not is_resource_exist(argv):
         return
-    logger.LOGI(argv)
+    #logger.LOGI(argv)
     app_main(argv)
     command_menu(argv)
 

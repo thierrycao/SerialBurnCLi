@@ -54,16 +54,21 @@ def init_log_file(path):
 
 
 def LOGIB(msg):
-    print_with_color(msg, bcolors.OKRED, "INFO")
+    print_with_color(msg, bcolors.OKRED, time_flag=False, tag="INFO")
 
 def LOGR(msg):
-    print_with_color(msg, bcolors.OKGREEN, time_flag=False)
+    print_with_color(msg, bcolors.OKGREEN, time_flag=False, tag='')
 
 def LOGG(msg):
-    print_with_color(msg, bcolors.OKGREEN, time_flag=False)
+    print_with_color(msg, bcolors.OKGREEN, time_flag=False, tag='')
 
-def LOGB(msg):
-    print_with_color(msg, bcolors.OKBLUE, time_flag=False)
+def LOGB(*args, **argv):
+    if 'end' in argv:
+        print_with_color(*args, bcolors.OKBLUE, time_flag=False, tag='', end=argv['end'])
+    else:
+        print_with_color(*args, bcolors.OKBLUE, time_flag=False, tag='')
+
+
 
 
 def LOGIG(msg):
@@ -126,11 +131,14 @@ def LOGI(*msg):
         msg_info += str(single_item)
     print_with_color(msg_info, bcolors.HEADER, tag = "INFO")
 
-def LOGW(*msg):
+def LOGW(*msg, **argv):
     msg_info = ''
     for single_item in msg:
         msg_info += str(single_item)
-    print_with_color(msg_info, bcolors.HEADER, tag = "WARN")
+    if 'end' in argv:
+        print_with_color(msg_info, bcolors.OKBLUE, time_flag=False, tag='', end=argv['end'])
+    else:
+        print_with_color(msg_info, bcolors.HEADER, tag = "WARN")
 
 
 def LOGE(*msg):
@@ -208,7 +216,7 @@ def get_color_text(msg, color, time_flag=False, tag='', intent=False, aligh_len=
    
     return text
 
-def print_with_color(msg, color, time_flag=True, tag='INFO'):
+def print_with_color(msg, color, time_flag=False, tag='INFO', end='\n'):
     time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     LOG_LEVEL_DIC = {
@@ -218,7 +226,7 @@ def print_with_color(msg, color, time_flag=True, tag='INFO'):
         'VERB' : 4
     }
 
-    if LOG_LEVEL < LOG_LEVEL_DIC.get(tag):
+    if tag and LOG_LEVEL < LOG_LEVEL_DIC.get(tag):
         return 
 
     if tag:
@@ -226,7 +234,7 @@ def print_with_color(msg, color, time_flag=True, tag='INFO'):
     else:
         log = '{:<20}\t{}'.format(time, msg) if time_flag else '{}'.format(msg)
     # log = f'{time}\t[{tag}]\t{msg}'
-    print(f"{color}{log}{bcolors.ENDC}")
+    print(f"{color}{log}{bcolors.ENDC}", end=end)
     if not log.endswith('\n'):
         log += '\n'
     if log_file:
