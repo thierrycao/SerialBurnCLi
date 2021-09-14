@@ -103,6 +103,10 @@ def is_number(s):
  
     return False
 
+def is_file_exists(path):
+    import os 
+    return os.path.isfile(os.path.expanduser(path))
+
 def str2int(s):
     if is_number(s):
         try:
@@ -361,7 +365,7 @@ def strip_json(src_file='', output_file=''):
     """
 
     src_file = user_choice(u"请输入文件: ", lambda a: os.path.isfile(a), src_file)
-    output_file = user_choice(u"请输入保存的文件: ", lambda a: a is not '', output_file)
+    output_file = user_choice(u"请输入保存的文件: ", lambda a: a != '', output_file)
     if is_python2():
         with open(src_file, 'rb') as i, open(output_file, 'w') as o:
             o.write(json.dumps(json.loads(i.read()), ensure_ascii=False))
@@ -385,7 +389,7 @@ def is_json_file(src_file):
 
 def add_json(src_file='', output_file=''):
     src_file = user_choice(u"请输入文件: ", lambda a: os.path.isfile(a), src_file)
-    output_file = user_choice(u"请输入保存的文件: ", lambda a: a is not '', output_file)
+    output_file = user_choice(u"请输入保存的文件: ", lambda a: a != '', output_file)
     try:
         if is_python2():
             with open(src_file, 'rb') as i:
@@ -691,6 +695,44 @@ def cp_rf(from_dir, to_dir, target='dir', forced = False):
             os.remove(to_dir)
             shutil.copy(from_dir, to_dir)
             
+def table_prompt(content_list):
+    import prettytable as pt
+    tb = pt.PrettyTable()
+    tb.field_names = ["item", "名称"]
+    for index,item in enumerate(content_list):
+        tb.add_row([f"{index}",f"{item}"])
+    return tb
+
+def wait_rotate(header='', wait=False, cond_lambda=None, cond=None, slip_time=0.2):
+    import time
+    index=["/","─","\\","/"]
+    index=[logger.get_purple_text(i) for i in index]
+    if not wait:
+        for i in range(len(index)):
+            if cond_lambda:
+                if cond:
+                    if cond_lambda(cond):
+                        break
+                else:
+                    if cond_lambda():
+                        break
+            print("\r" + header + index[i], end="")
+            time.sleep(slip_time)
+    else:
+        while wait:
+                       
+            for i in range(len(index)):
+                if cond_lambda:
+                    if cond:
+                        if cond_lambda(cond):
+                            break
+                else:
+                    if cond_lambda():
+                        break
+                print("\r" + header + index[i], end="")
+                time.sleep(slip_time)
+
+
 
 def input_text(notice, color = False):
     if is_python2():
@@ -730,8 +772,8 @@ def search_files_by_keyword(path='', keyword=''):
     target_dir = ''
     choice = ''
     path = user_choice(u"请输入需要搜索的文件夹路径: ", lambda a: os.path.isdir(a), path)
-    keyword = user_choice(u"请输入关键字[文件请输入*.txt]: ", lambda a: a is not '', keyword)
-    # keyword = user_choice(u"请输入关键字: ", lambda a: a is not '', keyword)
+    keyword = user_choice(u"请输入关键字[文件请输入*.txt]: ", lambda a: a != '', keyword)
+    # keyword = user_choice(u"请输入关键字: ", lambda a: a != '', keyword)
     if keyword and os.path.isfile(keyword):
         if is_csv_file(keyword):
             print(f'--------{keyword} is csv file-------')
@@ -744,7 +786,7 @@ def search_files_by_keyword(path='', keyword=''):
         print(f'已找到{len(result)}条搜索结果>>>>')
         choice = user_choice(u'是否需要将结果写入文件中[y/n]: ', lambda a: a in ['y', 'n'], choice, reset = True)
         if choice == 'y':
-            target_file = user_choice(u"请输入需要写入的文件名: ", lambda a: a is not '', target_file)
+            target_file = user_choice(u"请输入需要写入的文件名: ", lambda a: a != '', target_file)
             print(f'即将写入{target_file}>>>>')
             write_str_list_to_file(result, output=target_file, split_char='\n')
             print(f'写入成功>>>>')
@@ -787,7 +829,7 @@ def get_commands_list():
     return global_commands
 def functions():
     choice = 0
-    # choice = user_choice(u"你好:", lambda a: a is not '', choice, reset = True)
+    # choice = user_choice(u"你好:", lambda a: a != '', choice, reset = True)
     register_command('通过关键字搜索文件夹下匹配的对应文件', search_files_by_keyword)
     if get_commands_len() < 1:
         return

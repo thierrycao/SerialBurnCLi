@@ -31,7 +31,7 @@ default_baud_rate=1536000
 
 global_big_end = 'little'
 
-
+g_resource_burn_lpk = ''
 
 # if os.name == 'posix':
 #     from plugins import console_posix as console
@@ -110,9 +110,22 @@ class ReadSerialThread(threading.Thread):
 
     def init_serial(self, com = None, baud=115200):
         global g_serial_baudrate
-        if com == None:
-            com = self.get_serial_ports()[0]
-            self.serial_com = com
+
+        while com == None:
+            com_list = self.get_serial_ports()
+            print(com_list)
+            if com_list:
+                if len(com_list) > 1:
+                    com_is_only = lambda f: f and len(f) >= 1
+                    choice = None
+                    com = utils.user_choice(utils.table_prompt(com_list) + '\n选择需要的串口号', com_is_only, choice, isDigit = True) 
+                    com = com_list(com)
+                else:
+                    com = com_list[0]
+                self.serial_com = com
+                break
+            else:
+                utils.wait_rotate(header = '请插入串口设备', wait = True, cond_lambda = self.get_serial_ports ) 
         self.lock.acquire()
         if self.serial and isinstance(self.serial, serial.serialposix.Serial) and ( not self.serial_is_open ):
             self.deinit_serial()
@@ -394,6 +407,25 @@ class CSKBurnProtolClient():
                 return 0
         else:
             logger.LOGE('get_req_command not support this style {}'.format(type(option)))
+    def generate_request_head(self):
+        header = []
+        request_map = {'direction': {'pos':0, 'lens': 1}, \
+                        'command': {'pos':1, 'lens':1}, \
+                        'size': {'pos':2, 'lens':2}, \
+                        'value': {'pos':4, 'lens': 4}, \
+                        'error': {'pos': 8, 'lens': 1}, \
+                        'status': {'pos': 9, 'lens': 1}, \
+                        'md5': {'pos': 10, 'lens': 16}
+                        }
+        for key in request_map.keys():
+            if request_map.get(key).get('lens') == 1:
+                header.append(key[0:3])
+            elif request_map.get(key).get('lens') > 1:
+                header.append(key[0:3])
+                header.extend(['---']* (request_map.get(key).get('lens') -1) )
+        
+        return header
+
 
     def generate_response_head(self):
         header = []
@@ -414,14 +446,26 @@ class CSKBurnProtolClient():
         
         return header
 
-    def interact_data_dump(self, interact_type, data):
+    def interact_data_dump(self, interact_type, data, notice=''):
         if g_serial_interaction_dump_dbg:
-            if interact_type == 'req':
-                logger.LOGI('write req_slip_buf: ')
-                logger.print_hex(data)
-            elif interact_type == 'res':
-                logger.LOGI('read res_raw_buf: ', )
-                logger.print_hex(data, head= self.generate_response_head() )
+            if 'req' in interact_type:
+                if  notice:
+                    logger.LOGI(str(notice))
+                else:
+                    logger.LOGI(f'write {interact_type}: ')
+                if  'slip_decode' in  interact_type:
+                    logger.print_hex(data, head= self.generate_request_head())
+                else:
+                    logger.print_hex(data)
+            elif 'res' in interact_type:
+                if  notice:
+                    logger.LOGI(str(notice))
+                else:
+                    logger.LOGI(f'read {interact_type}: ', )
+                if 'slip_decode' in interact_type:
+                    logger.print_hex(data, head= self.generate_response_head() )
+                else:
+                    logger.print_hex(data)
 
     def command(self, command, data, in_chk, timeout = 0.2):
 
@@ -435,7 +479,8 @@ class CSKBurnProtolClient():
         req_raw_buf = self.get_req_raw_data(req_hdr, data)
         req_slip_buf = self.slip_encode(req_raw_buf)
 
-        self.interact_data_dump('req', req_slip_buf)
+        self.interact_data_dump('req_slip_encode', req_raw_buf)
+        self.interact_data_dump('req_slip_decode', req_slip_buf)
         
         self.serial_write(req_slip_buf)
 
@@ -462,11 +507,13 @@ class CSKBurnProtolClient():
             time.sleep(0.02)
             #print('read:', timeout)
 
+        self.interact_data_dump('res_slip_encode', res_slip_buf)
+
         res_raw_buf = self.slip_decode(res_slip_buf)
 
         
         # print(self.generate_response_head())
-        self.interact_data_dump('res', res_raw_buf)
+        self.interact_data_dump('res_slip_decode', res_raw_buf)
         
 
         ret_direction = self.parse_response(res_raw_buf, 'direction')
@@ -823,10 +870,10 @@ def g_serial_verify(partition_info):
         if isinstance(p, dict) and 'addr' in p.keys() and 'size' in p.keys():
             ret = _serial_verify(p.get('addr'), p.get('size'))
             if ret:
-                result = 'md5 (0x%08X-0x%08X): %s'%(p.get('addr'), p.get('size'), ret.replace('0x', '')) 
+                result = 'md5 (0x%08X-0x%08X): %s'%(p.get('addr'), p.get('addr') + p.get('size'), ret.replace('0x', '')) 
                 result_list.append([p.get('name'), result])
             else:
-                result = 'md5 (0x%08X-0x%08X): %s'%(p.get('addr'), p.get('size'), 'serial_verify err: ' + ret)
+                result = 'md5 (0x%08X-0x%08X): %s'%(p.get('addr'), p.get('adrr') + p.get('size'), 'serial_verify err: ' + ret)
                 result_list.append([p.get('name'), result])
                 logger.LOGE(result)
     serial_burn_status_show(result_list)
@@ -959,16 +1006,37 @@ def g_serial_burn_partition(partition, index_part=0, total_part=1):
 
 def g_serial_burn_lpk():
     global g_burn_resource_dict
+    global gSerialInstance
+    global g_resource_burn_lpk
 
-    logger.LOGB('1.正在等待设备接入…')
-    serial_connect()
+    # 判断lpk资源是否存在
+    choice = g_resource_burn_lpk 
+    choice = utils.user_choice('请输入lpk路径: ', lambda f: f and utils.is_file_exists(f), choice, debug=True)
+    g_resource_burn_lpk = os.path.expanduser(choice)
 
-    logger.LOGB("2.正在进入烧录模式…")
-    serial_enter()
+    # 加载lpk资源
+    load_lpk_resource(g_resource_burn_lpk)
 
+    # 判断设备的状态
+    if g_serial_status == 'connect':
+        logger.LOGB("2.正在进入烧录模式…")
+        if not serial_enter():
+            return False
+    elif g_serial_status == 'enter':
+        pass
+    else:
+        logger.LOGB('1.正在等待设备接入…')
+        if not serial_connect():
+            return False
+        logger.LOGB("2.正在进入烧录模式…")
+        if not serial_enter():
+            return False
+
+    # 读取芯片ID
     logger.LOGB("3.正在读取芯片ID…")
     g_serial_read_chipid()
 
+    # 烧录资源
     for index, key in enumerate(g_burn_resource_dict.keys()):
         if key == 'burner':
             continue
@@ -1031,6 +1099,7 @@ def g_serial_reboot(instance = gSerialInstance):
 
     ret = instance.cmd_flash_finish()
     g_serial_status = ''
+    instance.serialInstance.init_serial()
 
     return True
 
@@ -1152,7 +1221,9 @@ def command_menu(argv):
             serial_enter()
         elif choice == 'r':
             logger.LOGB("正在读取芯片ID…")
-            g_serial_read_chipid()
+            ret = g_serial_read_chipid()
+            if not ret:
+                logger.LOGE('读取失败')
         elif choice == 'v':
             logger.LOGB('正在进行校验分区操作')
             partition_addr = utils.user_choice('分区地址: ', lambda addr: addr is not None and addr >= 0x0 , choice, isDigit = True, reset=True)
@@ -1212,6 +1283,7 @@ def parse_user_choice():
         # parser.add_argument("-c", type=int, choices=[1,2], help="芯片类型[1:300x 2:4002][已废弃，使用默认资源，不支持修改]")
         parser.add_argument("-baudrate", type=int, choices=[9600, 115200, 1536000, 3000000], help="波特率")
         parser.add_argument("--c", action='store_true', help="进入交互模式")
+        parser.add_argument("--d", dest="debug", action='store_true', help="调试模式，打印更多交互日志")
         parser.add_argument("-v", "--verify", dest="verify", nargs='+', help="校验分区md5sum")
         parser.add_argument("-b", type=str, help="burner资源")
         parser.add_argument("-f", type=str, help="flashboot资源")
@@ -1252,6 +1324,7 @@ def load_lpk_resource(lpk_file):
         logger.LOGE('manifest.json 存在异常 {}'.format(manifest_result) )
         return False
 
+
     burn_resource_dict = utils.read_from_json_file_as_dict(manifest_file)
     if 'images' in burn_resource_dict.keys():
         burn_resource_dict = burn_resource_dict.get('images')
@@ -1262,6 +1335,7 @@ def load_lpk_resource(lpk_file):
                 # print(g_burn_resource_dict[key])
                 # print(g_burn_resource_dict[key]['addr'].strip('0x'))
                 g_burn_resource_dict[key]['addr'] = int(g_burn_resource_dict[key]['addr'].replace('0x',''), 16)
+    return True
 
 
 def init_burn_resource():
@@ -1282,7 +1356,8 @@ def init_burn_resource():
 
 
 def is_resource_exist(argv):
-    global g_burn_resource_dict, default_baud_rate
+    global g_burn_resource_dict, default_baud_rate, g_serial_interaction_dump_dbg
+    global g_resource_burn_lpk
 
     lambda_is_file_exist = lambda f: f and os.path.isfile(f)
 
@@ -1291,10 +1366,14 @@ def is_resource_exist(argv):
 
     if argv.baudrate:
         default_baud_rate = argv.baudrate
+    if argv.debug:
+        g_serial_interaction_dump_dbg = True
 
     if lambda_is_file_exist(argv.l):
-        load_lpk_resource(argv.l)
-        return True
+        ret = load_lpk_resource(argv.l)
+        if ret:
+            g_resource_burn_lpk = argv.l
+        return ret
 
     # if not (lambda_is_file_exist(argv.f) or \
     #         lambda_is_file_exist(argv.m) or \

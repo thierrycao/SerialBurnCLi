@@ -23,7 +23,7 @@ HEADER	logger.py	/^    HEADER = '\\033[95m'$/;"	v	class:bcolors
 Image	utils.py	/^    from PIL import Image$/;"	i
 Key	keyboard.py	/^from pynput.keyboard import Key,Listener$/;"	i
 LEFT	keyboard.py	/^    LEFT    = 3$/;"	v	class:Direction
-LOGB	logger.py	/^def LOGB(msg):$/;"	f
+LOGB	logger.py	/^def LOGB(*args, **argv):$/;"	f
 LOGE	logger.py	/^def LOGE(*msg):$/;"	f
 LOGG	logger.py	/^def LOGG(msg):$/;"	f
 LOGI	logger.py	/^def LOGI(*msg):$/;"	f
@@ -31,7 +31,7 @@ LOGIB	logger.py	/^def LOGIB(msg):$/;"	f
 LOGIG	logger.py	/^def LOGIG(msg):$/;"	f
 LOGR	logger.py	/^def LOGR(msg):$/;"	f
 LOGV	logger.py	/^def LOGV(*msg):$/;"	f
-LOGW	logger.py	/^def LOGW(*msg):$/;"	f
+LOGW	logger.py	/^def LOGW(*msg, **argv):$/;"	f
 LOG_ERROR	logger.py	/^LOG_ERROR = 1$/;"	v
 LOG_INFO	logger.py	/^LOG_INFO = 3$/;"	v
 LOG_LEVEL	logger.py	/^LOG_LEVEL= 4$/;"	v
@@ -172,9 +172,10 @@ pop_section_appoint_from_json	utils.py	/^def pop_section_appoint_from_json(src_f
 print_function	utils.py	/^def print_function():$/;"	f
 print_hex	logger.py	/^def print_hex(*args, **kargs):$/;"	f
 print_local_position	console.py	/^def print_local_position(handler, stream_id):$/;"	f
-print_with_color	logger.py	/^def print_with_color(msg, color, time_flag=False, tag='INFO'):$/;"	f
+print_with_color	logger.py	/^def print_with_color(msg, color, time_flag=False, tag='INFO', end='\\n'):$/;"	f
 process_posix	console.py	/^def process_posix():$/;"	f
 psutil	lsusb.py	/^    import psutil$/;"	i
+pt	utils.py	/^    import prettytable as pt$/;"	i
 read_data_from_file	utils.py	/^def read_data_from_file(src_file):$/;"	f
 read_from_json_file_as_dict	utils.py	/^def read_from_json_file_as_dict(src_file):$/;"	f
 read_hex_from_bin	utils.py	/^def read_hex_from_bin(src_file):$/;"	f
@@ -193,12 +194,14 @@ search	utils.py	/^def search(root, target):$/;"	f
 search_dir	utils.py	/^def search_dir(root, target):$/;"	f
 search_files_by_keyword	utils.py	/^def search_files_by_keyword(path='', keyword=''):$/;"	f
 shutil	utils.py	/^import csv, shutil, json$/;"	i
+stitch_image_long_figure	utils.py	/^def stitch_image_long_figure(image_dir, save_path=''):$/;"	f
 str2int	utils.py	/^def str2int(s):$/;"	f
 strip_json	utils.py	/^def strip_json(src_file='', output_file=''):$/;"	f
 subprocess	utils.py	/^    import subprocess$/;"	i
 sys	console.py	/^    import sys$/;"	i
 sys	console_posix.py	/^import sys$/;"	i
 sys	utils.py	/^import os, sys, platform$/;"	i
+table_prompt	utils.py	/^def table_prompt(content_list):$/;"	f
 terminal	console.py	/^    terminal = colorama.winterm.WinTerm()$/;"	v
 terminal	console.py	/^terminal = None$/;"	v
 time	console.py	/^    import time$/;"	i
@@ -206,12 +209,14 @@ time	console.py	/^import time$/;"	i
 time	console_posix.py	/^import time$/;"	i
 time	lsusb.py	/^    import time$/;"	i
 time	nblog.py	/^import time$/;"	i
+time	utils.py	/^    import time$/;"	i
 time	utils.py	/^import time$/;"	i
 unicodedata	utils.py	/^        import unicodedata$/;"	i
 usb	lsusb.py	/^import usb$/;"	i
 user_choice	utils.py	/^def user_choice(notice, cond, param, isDigit = False, reset = False, color = False, debug=False):$/;"	f
 utils	raw_input.py	/^import audio_task.utils.logger as logger$/;"	i
 wait_rotate	lsusb.py	/^def wait_rotate(header=''):$/;"	f
+wait_rotate	utils.py	/^def wait_rotate(header='', wait=False, cond_lambda=None, cond=None, slip_time=0.2):$/;"	f
 warning	nblog.py	/^    def warning(self, message):$/;"	m	class:logger
 win32	console.py	/^from colorama.winterm import win32 as win32$/;"	i
 win32file	lsusb.py	/^        import win32file$/;"	i
