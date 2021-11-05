@@ -850,11 +850,16 @@ def _serial_enter(instance = gSerialInstance, change_baud=True):
             return False
         else:
             logger.LOGI('波特率更改成功')
+
+        if not serial_connect():
+            return False
+        """
         if not instance.cmd_sync(2):
             logger.LOGE('错误: 无法识别设备')
             return False
         else:
             logger.LOGI('同步成功')
+        """
     g_serial_status = 'enter'
 
     return True
@@ -1099,7 +1104,7 @@ def serial_enter(instance = gSerialInstance):
     if not instance:
         instance = gSerialInstance
 
-    if not task_retry(_serial_enter, 4, '进入烧录模式'):
+    if not task_retry(_serial_enter, 1, '进入烧录模式'):
         logger.LOGE('进入烧录模式失败')
         return False
     else:

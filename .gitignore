@@ -6,3 +6,4 @@ src/LSFactoryPacker.spec
 src/iBurn.spec
 iBurn.spec
 src/demo/output/
+.DS_Store
