@@ -5,6 +5,10 @@
 #	> Mail: sycao@listenai.com
 #	> Created Time: Thu 13 Mar 2021 12:54:08 PM CST
 # ************************************************************************
+from pycallgraph import PyCallGraph
+from pycallgraph.output import GraphvizOutput
+from pycallgraph import Config
+from pycallgraph import GlobbingFilter
 
 import os, sys, time
 sys.path.append("..") 
@@ -76,8 +80,7 @@ def init_serial():
         serial_instance = ReadSerialThread()
         serial_instance.start()
         serial_instance.mark_start()
-        # serial_instances.append(serial_instance)
-        # thread_pool.put_thread(serial_instance)
+        logger.LOGI('初始化串口成功: {}'.format(serial_instance.serial_com))
     except Exception as err:
         logger.LOGE("初始化串口失败 {}".format(err))
         exit_app(1, 0)
@@ -113,13 +116,15 @@ class ReadSerialThread(threading.Thread):
 
         while com == None:
             com_list = self.get_serial_ports()
-            print(com_list)
+            logger.LOGI('串口监测结果:{}'.format(com_list))
             if com_list:
                 if len(com_list) > 1:
-                    com_is_only = lambda f: f and len(f) >= 1
+                    com_is_only = lambda f: f is not None and f >=0 and f < len(com_list)
                     choice = None
-                    com = utils.user_choice(utils.table_prompt(com_list) + '\n选择需要的串口号', com_is_only, choice, isDigit = True) 
-                    com = com_list(com)
+                    com = utils.user_choice('{} {}'.format(utils.table_prompt(com_list) , '\n选择需要的串口号'), com_is_only, choice, isDigit = True) 
+                    com = int(com)
+                    com = com_list[com]
+                    print('com:', com)
                 else:
                     com = com_list[0]
                 self.serial_com = com
@@ -544,10 +549,21 @@ class CSKBurnProtolClient():
             logger.LOGE('错误: 指令 %02X 串口读取异常' %command)
             # return False
             return 0xFF
+        '''
         if ret.get('res_ret').get('error'):
             logger.LOGE('错误: 指令 %02X 设备返回异常 0x%02X' %(command, ret.get('res_ret').get('code')))
             logger.LOGE('错误: 指令 %02X 设备返回异常 ' %(command), ret)
-
+        '''
+        # 忽略res的error 
+        '''
+        if command == self.get_req_command('READ_REG'):
+            return ret.get('res_ret').get('value')
+        '''
+        if ret.get('res_ret').get('error'):
+            logger.LOGE('错误: 指令 %02X 设备返回异常 0x%02X' %(command, ret.get('res_ret').get('code')))
+            logger.LOGE('错误: 指令 %02X 设备返回异常 ' %(command), ret)
+            if command == self.get_req_command('READ_REG'):
+                return ret.get('res_ret').get('value')
         elif command == self.get_req_command('READ_REG'):
             return ret.get('res_ret').get('value')
 
@@ -555,8 +571,7 @@ class CSKBurnProtolClient():
             return ret
 
         else:
-            # return True
-            return 0x00
+            return (True, 0x00)
     def print_funcname(fn):
         def wrapper(*arg, **kw):
             if g_serial_print_funcname_dbg:
@@ -586,7 +601,7 @@ class CSKBurnProtolClient():
 
         cmd = size + blocks + block_size + offset
 
-        return True if self.check_command(self.get_req_command('MEM_BEGIN'),cmd, 0) == 0x00 else False
+        return True if self.check_command(self.get_req_command('MEM_BEGIN'),cmd, 0) == (True,0x00) else False
 
     @print_funcname
     def cmd_mem_block(self, data, data_len, seq):
@@ -596,7 +611,7 @@ class CSKBurnProtolClient():
         rev2 = self.get_bytes_hex_list(0, 4)
         cmd = size + seq + rev1 + rev2 + data
 
-        return True if self.check_command(self.get_req_command('MEM_DATA'), cmd, self.checksum(data), 0.5) == 0x00 else False
+        return True if self.check_command(self.get_req_command('MEM_DATA'), cmd, self.checksum(data), 0.5) == (True,0x00) else False
 
     @print_funcname
     def cmd_mem_end(self):
@@ -606,7 +621,7 @@ class CSKBurnProtolClient():
         address = self.get_bytes_hex_list(0, 4)
         cmd = option + address
 
-        return True if self.check_command(self.get_req_command('MEM_END'), cmd, 0) == 0x00 else False
+        return True if self.check_command(self.get_req_command('MEM_END'), cmd, 0) == (True,0x00) else False
 
     @print_funcname
     def cmd_flash_begin(self, size, blocks, block_size, offset, md5):
@@ -621,7 +636,7 @@ class CSKBurnProtolClient():
 
         cmd = size + blocks + block_size + offset + md5
 
-        return True if self.check_command(self.get_req_command('FLASH_BEGIN'), cmd, self.checksum(md5)) == 0x00 else False 
+        return True if self.check_command(self.get_req_command('FLASH_BEGIN'), cmd, self.checksum(md5)) == (True,0x00) else False 
 
     @print_funcname
     def cmd_flash_block(self, data, data_len, seq):
@@ -648,7 +663,7 @@ class CSKBurnProtolClient():
         address = self.get_bytes_hex_list(0, 4)
         cmd = option + address
 
-        return True if self.check_command(self.get_req_command('FLASH_END'), cmd, 0) == 0x00 else False
+        return True if self.check_command(self.get_req_command('FLASH_END'), cmd, 0) == (True,0x00) else False
 
     @print_funcname
     def cmd_flash_md5sum(self, address, size):
@@ -673,7 +688,7 @@ class CSKBurnProtolClient():
     @print_funcname
     def cmd_flash_md5_challenge(self):
 
-        return True if self.check_command(self.get_req_command('FLASH_MD5_CHALLENGE'), [], 0, 5) == 0x00 else False 
+        return True if self.check_command(self.get_req_command('FLASH_MD5_CHALLENGE'), [], 0, 5) == (True,0x00) else False 
 
     @print_funcname
     def cmd_change_baud(self, baud):
@@ -910,15 +925,15 @@ def g_serial_read_chipid(instance = gSerialInstance):
         return False
 
     id1 = instance.cmd_read_reg(EFUSE_BASE + 0x80 + 0x0A)
-    if id1 == 0x00:
-        return False
 
     time.sleep(0.1)
     id0 = instance.cmd_read_reg(EFUSE_BASE + 0x80 + 0x0E)
-    if id0 == 0x00:
+    #logger.LOGI(f'id0:{id0}, id1:{id1}')
+    if (not utils.is_number(id0) ) or ( not utils.is_number(id1) ):
         return False
 
-    chipid = hex( (id0 << 32) | id1 ).replace('0x', '')
+    #chipid = hex( (id0 << 32) | id1 ).replace('0x', '')
+    chipid = '%08x%08x'%(id0, id1)
 
     logger.LOGB(f'chipid: {chipid}')
 
@@ -1142,14 +1157,12 @@ def command_prompt():
     tb.add_row(["10","重启", "rb"])
     tb.add_row(["0","退出", "b"])
     tb.add_row(["*","查看当前波特率", "cb"])
+    tb.add_row(["-","监测并连接串口", "detect"])
     return tb
 
-def app_main(argv):
+def g_serial_detect():
     global gSerialInstance, serial_instance,  args_dict
     serial_instance = init_serial()
-    # thread = threading.Thread(target=app_serial, args=[ argv.baudrate if argv.baudrate else 115200])
-    # thread.start()
-
     choice = ''
 
     if serial_instance:
@@ -1157,6 +1170,13 @@ def app_main(argv):
     else:
         logger.LOGE('not found serial device, exit!')
         return
+
+def app_main(argv):
+    # thread = threading.Thread(target=app_serial, args=[ argv.baudrate if argv.baudrate else 115200])
+    # thread.start()
+    if argv.detect:
+        g_serial_detect()
+
 
 
 def serial_burn_image(instance= gSerialInstance):
@@ -1192,6 +1212,7 @@ def command_menu(argv):
         lambda_is_file_exist = lambda f: f and os.path.isfile(f)
         if lambda_is_file_exist(argv.l):
             g_serial_burn_lpk()
+            g_serial_verify_lpk_partion()
         elif argv.f or argv.m or argv.r or argv.z:
             serial_burn_image()
         elif argv.verify:
@@ -1206,7 +1227,8 @@ def command_menu(argv):
                 serial_verify_partition_info_format.append({'name': f'分区{partition_index}', 'addr': partition_addr, 'size': partition_size})
             #print(serial_verify_partition_info_format)
             g_serial_verify(serial_verify_partition_info_format)
-            
+           
+        #return
         exit_app()
     
 
@@ -1233,6 +1255,8 @@ def command_menu(argv):
         elif choice == 'l':
             logger.LOGB("正在进行烧录lpk资源操作…")
             g_serial_burn_lpk()  
+            logger.LOGB("正在进行lpk资源分区校验…")
+            g_serial_verify_lpk_partion()
         elif choice == 'bf':
             logger.LOGB('正在烧录Flashboot…')
             g_serial_burn_partition('flashboot')
@@ -1247,7 +1271,8 @@ def command_menu(argv):
             g_serial_reboot()
         elif choice == 'cb':
             logger.LOGB(f'current baudrate: {g_serial_baudrate}')
-            
+        elif choice == 'detect':
+            g_serial_detect()
         elif choice == 'b' or choice == 'break':
             exit_app()
         else:
@@ -1281,10 +1306,13 @@ def parse_user_choice():
     try:
         parser = argparse.ArgumentParser(description='欢迎使用CSK串口固件烧录工具')
         # parser.add_argument("-c", type=int, choices=[1,2], help="芯片类型[1:300x 2:4002][已废弃，使用默认资源，不支持修改]")
-        parser.add_argument("-baudrate", type=int, choices=[9600, 115200, 1536000, 3000000], help="波特率")
+        # parser.add_argument("-baudrate", type=int, choices=[9600, 115200, 921600, 1536000, 3000000, 460800], help="波特率")
+        parser.add_argument("-baudrate", type=int, choices=[9600, 115200, 921600, 1536000, 3000000, 460800], help="波特率")
         parser.add_argument("--c", action='store_true', help="进入交互模式")
+        parser.add_argument("--g", dest="graphviz", action='store_true', help="图形化绘制")
         parser.add_argument("--d", dest="debug", action='store_true', help="调试模式，打印更多交互日志")
         parser.add_argument("-v", "--verify", dest="verify", nargs='+', help="校验分区md5sum")
+        parser.add_argument("--detect", dest = 'detect', action='store_true', help="监测串口")
         parser.add_argument("-b", type=str, help="burner资源")
         parser.add_argument("-f", type=str, help="flashboot资源")
         parser.add_argument("-m", type=str, help="master资源")
@@ -1312,6 +1340,17 @@ def unzip_file(zip_src, dst_dir):
     else:
         logger.LOGE('This is not zip')
 
+def g_serial_verify_lpk_partion():
+    global g_burn_resource_dict
+    partition_info = []
+    print('g_burn_resource_dict:', g_burn_resource_dict)
+    for item in g_burn_resource_dict.keys():
+        if 'size' in g_burn_resource_dict.get(item).keys() and 'addr' in g_burn_resource_dict.get(item).keys():
+            if g_burn_resource_dict.get(item).get('size') > 0 and g_burn_resource_dict.get(item).get('addr') != '':
+                partition_info.append({'size': g_burn_resource_dict.get(item).get('size'), 'addr': g_burn_resource_dict.get(item).get('addr')})
+    if partition_info:
+        g_serial_verify(partition_info)
+
 def load_lpk_resource(lpk_file):
     global g_burn_resource_dict
     dst_dir = '.lpk'
@@ -1331,6 +1370,7 @@ def load_lpk_resource(lpk_file):
         for key in burn_resource_dict.keys():
             g_burn_resource_dict[key] = burn_resource_dict.get(key)
             g_burn_resource_dict[key]['file'] = os.path.join(os.path.dirname(manifest_file), g_burn_resource_dict[key]['file'])
+            g_burn_resource_dict[key]['size'] = os.path.getsize(g_burn_resource_dict[key]['file'])
             if isinstance(g_burn_resource_dict[key]['addr'], str) and g_burn_resource_dict[key]['addr']:
                 # print(g_burn_resource_dict[key])
                 # print(g_burn_resource_dict[key]['addr'].strip('0x'))
@@ -1340,11 +1380,11 @@ def load_lpk_resource(lpk_file):
 
 def init_burn_resource():
     global g_burn_resource_dict
-    g_burn_resource_dict = {'burner': {'addr': 0x0, 'file': ''},\
-                            'flashboot': {'addr': 0x0, 'file': ''},\
-                            'master': {'addr': 0x10000, 'file': ''},\
-                            'respak': {'addr': 0x100000, 'file': ''},\
-                            'zero': {'addr': 0x3ff000, 'file': ''}
+    g_burn_resource_dict = {'burner': {'addr': 0x0, 'file': '', 'size': 0},\
+            'flashboot': {'addr': 0x0, 'file': '', 'size': 0},\
+            'master': {'addr': 0x10000, 'file': '', 'size': 0},\
+            'respak': {'addr': 0x100000, 'file': '', 'size': 0},\
+            'zero': {'addr': 0x3ff000, 'file': '', 'size': 0}
                             }
 
     if getattr(sys, 'frozen', False): #是否Bundle Resource
@@ -1367,6 +1407,7 @@ def is_resource_exist(argv):
     if argv.baudrate:
         default_baud_rate = argv.baudrate
     if argv.debug:
+        g_serial_raw_dump_dbg = True
         g_serial_interaction_dump_dbg = True
 
     if lambda_is_file_exist(argv.l):
@@ -1394,19 +1435,84 @@ def is_resource_exist(argv):
 
     return True
 
-def main():
-    init()
-    init_burn_resource()
+def entrance_main():
 
     argv = parse_user_choice()
+    init()
+    init_burn_resource()
     if not is_resource_exist(argv):
         return
     #logger.LOGI(argv)
     app_main(argv)
+    if argv.graphviz:
+        logger.LOGI('draw_graphviz begain...')
+        draw_graphviz()
+        return
     command_menu(argv)
 
-    exit_app()
+    #exit_app()
 
+def draw_entrance():
+    '''
+    init()
+    init_burn_resource()
+    argv = parse_user_choice()
+    if not is_resource_exist(argv):
+        return
+    app_main(argv)
+    '''
+    argv = parse_user_choice()
+    command_menu(argv)
+
+def draw_graphviz():
+#if __name__ == '__main__':
+    config = Config()
+    # 关系图中包括(include)哪些函数名。
+    #如果是某一类的函数，例如类gobang，则可以直接写'gobang.*'，表示以gobang.开头的所有函数。（利用正则表达式）。
+    '''
+    config.trace_filter = GlobbingFilter(include=[
+        'test',
+        'init',
+        'init_burn_resource',
+        'entrance_main',
+        'app_main',
+        'is_resource_exist',
+        'load_lpk_resource',
+        'unzip_file',
+        'parse_user_choice',
+        'command_menu',
+        'serial_burn_image',
+        'command_prompt',
+        'serial_burn_status_show',
+        'g_serial_reboot',
+        'serial_enter',
+        'serial_connect',
+        'g_serial_burn_lpk',
+        'g_serial_burn_partition',
+        'burn_image',
+        'getmd5'
+    ])
+    '''
+    # 该段作用是关系图中不包括(exclude)哪些函数。(正则表达式规则)
+    config.trace_filter = GlobbingFilter(exclude=[
+            '_*',
+         'pycallgraph.*',
+         '*.secret_function',
+         'FileFinder.*',
+         'ModuleLockManager.*',
+         'SourceFilLoader.*'
+     ])
+    graphviz = GraphvizOutput()
+    graphviz.output_file = 'graph.png'
+    try:
+        with PyCallGraph(output=graphviz, config=config):
+            draw_entrance()
+            logger.LOGI('draw_graphviz end')
+    except Exception as err:
+        logger.LOGE(f'{err}')
+    finally:
+        logger.LOGI('draw_graphviz finally ends')
 
 if __name__ == '__main__':
-    main()
+    entrance_main()
+    #draw_graphviz()

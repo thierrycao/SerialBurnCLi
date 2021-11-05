@@ -80,7 +80,7 @@ def is_windows():
         return False
 
 def is_number(s):
-    if not s:
+    if s is None:
         return False
     try:
         float(s)
@@ -268,7 +268,7 @@ def write_bin_list_to_bmp(src_list, width, height, save_path=''):
 
     img = np.array(img_gray_8)
 
-    print(img.shape)
+    #print(img.shape)
     #rows,cols,dims = img.shape
 
     for i in range(height):
@@ -280,7 +280,7 @@ def write_bin_list_to_bmp(src_list, width, height, save_path=''):
     im = Image.fromarray(img)
     im.convert('L').save(save_path) # 保存为灰度图(8-bit)
 
-def connect_bmp(info_list, save_path=''):
+def connect_bmp(info_list, save_path='', using_offset=False):
     from PIL import Image
 
     # width = 500
@@ -290,15 +290,24 @@ def connect_bmp(info_list, save_path=''):
 
     for i in info_list:
         width += i.get('width')
+    # print(info_list)
     # 创建空白图片
     img_gray_8 = Image.new('L', (width, height), 128)
     for index,value in enumerate(info_list):
         img = Image.open(value.get('file_path')).convert("L")
-        img_gray_8.paste(img, (width_index , 20 ))
-        # img_gray_8.paste(img, (width_index , 20 + value.get('yset')))
-        width_index += value.get('width') 
-        # img_gray_8.paste(img, (width_index + value.get('xset'), 20 + value.get('yset')))
-        # width_index += value.get('width') + value.get('xset')
+        if using_offset:
+            #img_gray_8.paste(img, (width_index , 20 + value.get('yset')))
+            xset_offset = 0
+            if False:
+                if value.get('xset') < 0 and index == 0:
+                    xset_offset = 0
+                else:
+                    xset_offset = value.get('xset')
+            img_gray_8.paste(img, (width_index + xset_offset, 20 + value.get('yset')))
+            width_index += value.get('width') + xset_offset
+        else:
+            img_gray_8.paste(img, (width_index , 20 ))
+            width_index += value.get('width') 
 
     img_gray_8.save(save_path)
 
@@ -759,12 +768,15 @@ def user_choice(notice, cond, param, isDigit = False, reset = False, color = Fal
         param = None
     while not cond(param):
         param = input_text(notice, color = color)
+        param = param.replace('\n', '')
+        #print(type(param), is_number(param), param)
         if isDigit and is_number(param):
             param = str2int(param)
             if param == -1:
                 print('user_choice is error!')
         if debug:
             print(f'>>>你的输入为:{param}')
+        #print('param:', param)
     return param
 
 def search_files_by_keyword(path='', keyword=''):
