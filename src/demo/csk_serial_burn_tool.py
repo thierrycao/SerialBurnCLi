@@ -842,10 +842,19 @@ def _serial_enter(instance = gSerialInstance, change_baud=True):
     if not instance.cmd_sync(2):
         logger.LOGE('错误: 无法识别设备')
         return False
+    else:
+        logger.LOGI('同步成功')
     if change_baud:
         if not instance.cmd_change_baud(default_baud_rate):
             logger.LOGE('错误: 无法设置串口速率')
             return False
+        else:
+            logger.LOGI('波特率更改成功')
+        if not instance.cmd_sync(2):
+            logger.LOGE('错误: 无法识别设备')
+            return False
+        else:
+            logger.LOGI('同步成功')
     g_serial_status = 'enter'
 
     return True
