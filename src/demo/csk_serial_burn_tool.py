@@ -132,7 +132,7 @@ class ReadSerialThread(threading.Thread):
             else:
                 utils.wait_rotate(header = '请插入串口设备', wait = True, cond_lambda = self.get_serial_ports ) 
         self.lock.acquire()
-        if self.serial and isinstance(self.serial, serial.serialposix.Serial) and ( not self.serial_is_open ):
+        if self.serial and ( not self.serial_is_open ):
             self.deinit_serial()
             
         logger.LOGB(f'初始化串口>> 端口:{com}, 波特率:{baud}')
@@ -144,7 +144,7 @@ class ReadSerialThread(threading.Thread):
 
 
     def deinit_serial(self):
-        if self.serial and isinstance(self.serial, serial.serialposix.Serial) and self.serial_is_open:
+        if self.serial and self.serial_is_open:
             logger.LOGB('deinit_serial>>')
             self.serial_is_open = False
             self.com = None
@@ -171,7 +171,7 @@ class ReadSerialThread(threading.Thread):
 
         self.deinit_serial()
         self.init_serial(None, baud)
-        if self.serial and isinstance(self.serial, serial.serialposix.Serial):
+        if self.serial:
             return True
         else:
             return False
@@ -198,7 +198,7 @@ class ReadSerialThread(threading.Thread):
         with open(log_file, 'wb+') as file:
             while not end_read and self.is_running:
                 try:
-                    if self.serial and isinstance(self.serial, serial.serialposix.Serial) and self.serial.isOpen() and self.serial_is_open:
+                    if self.serial and self.serial.isOpen() and self.serial_is_open:
                         self.lock.acquire()
                         if self.serial_is_open:
                             tmp_msg = self.serial.read_all()
