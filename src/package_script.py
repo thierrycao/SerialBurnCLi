@@ -41,7 +41,7 @@ def build_dist():
                 # '--distpath=../dist',
                 # '--specpath=../dist/spec',
                 '--clean',
-                'demo/demo/csk_serial_burn_tool.py']
+                'demo/csk_serial_burn_tool.py']
 
         run(opts)
     else:

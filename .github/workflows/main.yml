@@ -58,20 +58,31 @@ jobs:
     - name: Pack As Artifact (Windows)
       if: runner.os == 'Windows'
       run: |
-        if([io.Directory]::Exists('build.sh')){
-          cd src && python package_script.py
-        }
-    - name: Upload Artifact (Linux || macOS)
+        cd src 
+        python package_script.py
+        cd -
+      shell: pwsh
+    - name: Check Pack Artifact Result
+      run: |
+        ls dist
+    - name: Upload Artifact (Linux)
       uses: actions/upload-artifact@v2
-      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+      if: success() && ( runner.os == 'Linux')
       with:
-        name: app
+        name: app-${{runner.os}}
         path: dist/iBurn
+    - name: Upload Artifact (macOS)
+      uses: actions/upload-artifact@v2
+      if: success() && ( runner.os == 'macOS' )
+      with:
+        name: app-${{runner.os}}
+        path: dist/iBurn
+  
     - name: Upload Artifact (Windows)
       uses: actions/upload-artifact@v2
       if: runner.os == 'Windows' 
       with:
-        name: app
+        name: app-${{runner.os}}
         path: dist/iBurn.exe
     
 
@@ -90,7 +101,7 @@ jobs:
         #if: steps.prepare_release.outputs.tag_name
         uses: actions/download-artifact@v2
         with:
-          name: app
+          name: app-${{runner.os}}
           path: ./
 
       - name: Check Meta Data (Linux || macOS)
