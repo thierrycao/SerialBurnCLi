@@ -1295,7 +1295,7 @@ def command_menu(argv):
         choice=''
         time.sleep(1)
 
-    thread.join()
+    # thread.join()
     # for item in global_output_directory.keys():
     #     if 'dir' in global_output_directory.get(item).keys():
     #         utils.dirs(global_output_directory.get(item).get('dir'))
