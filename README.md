@@ -1,8 +1,8 @@
-## Serial-Burn-Tool
+## SerialBurnCLi
 
 ### 介绍
 
-> Serial-Burn-Tool 为基于Python开发的一个嵌入式串口烧录CLi应用
+> SerialBurnCLi 为基于Python3.7 开发的一个嵌入式串口烧录CLi应用
 
 ### 数据格式解析
 
