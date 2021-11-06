@@ -1249,7 +1249,7 @@ def command_menu(argv):
     while True:
         print(command_prompt())
         choice = ''
-        choice = utils.user_choice('请输入:', lambda f: f is not '' and f is not None, choice)
+        choice = utils.user_choice('请输入:', lambda f: f is not None and f != '', choice)
         if choice == 'c':
             logger.LOGB('正在等待设备接入…')
             serial_connect()
