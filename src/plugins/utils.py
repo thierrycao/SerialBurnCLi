@@ -851,9 +851,13 @@ def functions():
     get_commands_list()[int(choice)-1].get('cb')()
 
 
+def getmd5(file):
+    import hashlib
+    m = hashlib.md5()
+    with open(file,'rb') as f:
+        for line in f:
+            m.update(line)
+    md5code = m.hexdigest()
+    # return bytes.fromhex(md5code).hex()
+    return int(md5code, 16)
 
-def main():
-    functions()
-
-if __name__ == '__main__':
-    main()
