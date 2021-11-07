@@ -31,17 +31,17 @@ def build_dist():
                 '--paths=H:\\tools\\dev\\Anaconda3\\envs\\py37\\Lib\\site-packages',
                 '--add-data={};res'.format(os.path.join(get_current_file_path(), './demo/spec/res')),
                 '--i={}'.format(os.path.join(get_current_file_path(), './demo/spec/favorite/_ico.ico')),
-                '--upx-dir=D:\\workshop\\home\\workshop\\abc\\script\\core\\aux\\utils\\',
+                #'--upx-dir=D:\\workshop\\home\\workshop\\abc\\script\\core\\aux\\utils\\',
                 '--additional-hooks-dir=.',
-                '--name=LSFactoryPacker',
+                '--name=iBurn',
                 '--distpath={}'.format(os.path.join(get_current_file_path(), '../dist')),
-                '--specpath={}'.format(os.path.join(get_current_file_path(), '../dist/spec')),
+                #'--specpath={}'.format(os.path.join(get_current_file_path(), '../dist/spec')),
                 # '--add-data=../../src/demo/spec/res;res',
                 # '--i=../../src/demo/spec/favorite/_ico.ico',
                 # '--distpath=../dist',
                 # '--specpath=../dist/spec',
                 '--clean',
-                'demo/csk_spi_tool.py']
+                'demo/csk_serial_burn_tool.py']
 
         run(opts)
     else:

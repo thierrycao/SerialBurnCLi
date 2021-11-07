@@ -73,6 +73,7 @@ def get_usb_devlists():
             return dev_dict
 
 def get_udisk():
+    import os
     if os.name == 'posix':
         return get_udisk_partition()
     else:

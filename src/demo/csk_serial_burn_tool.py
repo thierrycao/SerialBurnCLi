@@ -1249,7 +1249,7 @@ def command_menu(argv):
     while True:
         print(command_prompt())
         choice = ''
-        choice = utils.user_choice('请输入:', lambda f: f is not '' and f is not None, choice)
+        choice = utils.user_choice('请输入:', lambda f: f is not None and f != '', choice)
         if choice == 'c':
             logger.LOGB('正在等待设备接入…')
             serial_connect()
@@ -1295,7 +1295,7 @@ def command_menu(argv):
         choice=''
         time.sleep(1)
 
-    thread.join()
+    # thread.join()
     # for item in global_output_directory.keys():
     #     if 'dir' in global_output_directory.get(item).keys():
     #         utils.dirs(global_output_directory.get(item).get('dir'))
