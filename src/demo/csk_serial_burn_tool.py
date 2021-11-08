@@ -12,13 +12,14 @@ from pycallgraph import GlobbingFilter
 
 import os, sys, time
 sys.path.append("..") 
+sys.path.append(".") 
 from plugins import utils as utils
 from plugins import logger as logger
 from plugins.utils import getmd5 as getmd5
 from tqdm import tqdm
 
-from csk_burn_protocol_client import CSKBurnProtocolClient
-from csk_read_thread import ReadSerialThread
+from csk_burn_protocol_client import CSKBurnProtocolClient as CSKBurnProtocolClient
+from csk_read_thread import ReadSerialThread as ReadSerialThread
 
 g_serial_raw_dump_dbg = False
 g_serial_interaction_dump_dbg = False
