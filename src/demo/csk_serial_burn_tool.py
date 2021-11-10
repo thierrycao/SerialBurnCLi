@@ -72,13 +72,13 @@ def is_little_endian():
     return True if global_big_end == 'little' else False
 
 
-def init_serial():
+def init_serial(com = None):
     """初始化串口
     """
     gSerialInstance = None
     # logger.LOGI(f"初化串口成功：{port}")
     try:
-        gSerialInstance = ReadSerialThread(g_serial_raw_dump_dbg)
+        gSerialInstance = ReadSerialThread(g_serial_raw_dump_dbg, com)
         gSerialInstance.start()
         gSerialInstance.mark_start()
         logger.LOGI('初始化串口成功: {}'.format(gSerialInstance.serial_com))
@@ -152,16 +152,10 @@ def _serial_enter(instance = gSerialClientInstance, change_baud=True):
             return False
         else:
             logger.LOGI('波特率更改成功')
-
+        # 设置完波特率后需要再次同步
         if not serial_connect():
             return False
-        """
-        if not instance.cmd_sync(2):
-            logger.LOGE('错误: 无法识别设备')
-            return False
-        else:
-            logger.LOGI('同步成功')
-        """
+       
     g_serial_status = 'enter'
 
     return True
@@ -387,7 +381,7 @@ def serial_connect():
             instance = gSerialClientInstance
         return instance.cmd_sync()
 
-    if not task_retry(_serial_connect, 6, '设备同步成功'):
+    if not task_retry(_serial_connect, 10, '设备同步成功'):
         logger.LOGE('设备连接失败')
         return False
     else:
@@ -468,9 +462,9 @@ def command_prompt():
     tb.add_row(["-","监测并连接串口", "detect"])
     return tb
 
-def g_serial_detect():
+def g_serial_detect(com = None):
     global gSerialClientInstance, gSerialInstance, g_serial_interaction_dump_dbg, g_serial_print_funcname_dbg
-    gSerialInstance = init_serial()
+    gSerialInstance = init_serial(com)
     choice = ''
 
     if gSerialInstance:
@@ -484,6 +478,15 @@ def app_main(argv):
     # thread.start()
     if argv.detect:
         g_serial_detect()
+    else:
+        if argv.port:
+            g_serial_detect(argv.port)
+        else:
+            choice = None
+            choice = utils.user_choice("是否自动检测串口端口[y/n]: ", lambda c: c and c.lower() in ['y', 'yes', 'n', 'no'], choice)
+            if choice in ['y', 'yes']:
+                g_serial_detect()
+
 
 
 
@@ -514,9 +517,8 @@ def serial_burn_image(instance= gSerialClientInstance):
     
     return True
 
-def command_menu(argv):
-
-    if not argv.c:
+def command_action(argv):
+    if not argv.interact:
         lambda_is_file_exist = lambda f: f and os.path.isfile(f)
         if lambda_is_file_exist(argv.l):
             g_serial_burn_lpk()
@@ -535,11 +537,13 @@ def command_menu(argv):
                 serial_verify_partition_info_format.append({'name': f'分区{partition_index}', 'addr': partition_addr, 'size': partition_size})
             #print(serial_verify_partition_info_format)
             g_serial_verify(serial_verify_partition_info_format)
-           
-        #return
-        exit_app()
+        else:
+            return False
+        return True
+    return False
     
 
+def command_menu(argv):
     while True:
         print(command_prompt())
         choice = ''
@@ -615,11 +619,12 @@ def parse_user_choice():
         # parser.add_argument("-c", type=int, choices=[1,2], help="芯片类型[1:300x 2:4002][已废弃，使用默认资源，不支持修改]")
         # parser.add_argument("-baudrate", type=int, choices=[9600, 115200, 921600, 1536000, 3000000, 460800], help="波特率")
         parser.add_argument("-baudrate", type=int, choices=[9600, 115200, 921600, 1536000, 3000000, 460800], help="波特率")
-        parser.add_argument("--c", action='store_true', help="进入交互模式")
+        parser.add_argument("--i", dest="interact", action='store_true', help="进入交互模式")
         parser.add_argument("--g", dest="graphviz", action='store_true', help="图形化绘制")
         parser.add_argument("--d", dest="debug", action='store_true', help="调试模式，打印更多交互日志")
         parser.add_argument("-v", "--verify", dest="verify", nargs='+', help="校验分区md5sum")
         parser.add_argument("--detect", dest = 'detect', action='store_true', help="监测串口")
+        parser.add_argument("-p", dest="port", type=str, help="串口端口")
         parser.add_argument("-b", type=str, help="burner资源")
         parser.add_argument("-f", type=str, help="flashboot资源")
         parser.add_argument("-m", type=str, help="master资源")
@@ -755,7 +760,9 @@ def entrance_main():
         logger.LOGI('draw_graphviz begain...')
         draw_graphviz()
         return
-    command_menu(argv)
+    result = command_action(argv)
+    if not result or argv.interact:
+        command_menu(argv)
 
     #exit_app()
 
