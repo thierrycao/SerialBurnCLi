@@ -16,6 +16,7 @@ sys.path.append(".")
 from plugins import utils as utils
 from plugins import logger as logger
 from plugins.utils import getmd5 as getmd5
+from plugins.utils import getmd5_fromlist as getmd5_fromlist
 from tqdm import tqdm
 
 from csk_burn_protocol_client import CSKBurnProtocolClient as CSKBurnProtocolClient
@@ -253,47 +254,54 @@ def g_serial_read_chipid(instance = gSerialClientInstance):
 
 
 def burn_image(addr, data, lens, md5sum, instance = gSerialClientInstance):
-    
-    global gSerialClientInstance
-    if not instance:
-        instance = gSerialClientInstance
+    def burn_bunch(addr, data, lens, md5sum, instance = gSerialInstance):
+        global gSerialClientInstance
+        if not instance:
+            instance = gSerialClientInstance
 
-    FLASH_BLOCK_SIZE = 0x1000
+        FLASH_BLOCK_SIZE = 0x1000
 
-    blocks = instance.BLOCKS(lens, FLASH_BLOCK_SIZE)
-    
-    if not instance.cmd_flash_begin(lens, blocks, FLASH_BLOCK_SIZE, addr, md5sum):
-        logger.LOGE('cmd_flash_begin fails')
-        return False;
-    index = 0
-    with tqdm(total = blocks, desc= '分区', leave = True, ncols = 50, unit='B', unit_scale = True) as pbar:
-        while index < blocks:
-            offset = FLASH_BLOCK_SIZE * index
-            length = FLASH_BLOCK_SIZE
+        blocks = instance.BLOCKS(lens, FLASH_BLOCK_SIZE)
+        
+        if not instance.cmd_flash_begin(lens, blocks, FLASH_BLOCK_SIZE, addr, md5sum):
+            logger.LOGE('cmd_flash_begin fails')
+            return False;
+        index = 0
+        with tqdm(total = blocks, desc= '分区', leave = True, ncols = 50, unit='B', unit_scale = True) as pbar:
+            while index < blocks:
+                offset = FLASH_BLOCK_SIZE * index
+                length = FLASH_BLOCK_SIZE
 
-            if (offset + length > lens):
-                length = lens - offset
+                if (offset + length > lens):
+                    length = lens - offset
 
-            FLASH_BLOCK_TRIES = 5
-            next = 0
-            for i in range(FLASH_BLOCK_TRIES):
-                if i > 0:
-                    logger.LOGW('第 %d 次重试写入数据块 %d' %(i, index))
-                ret = instance.cmd_flash_block(data[offset: offset+length], length, index)
-                next = ret.get('res_ret').get('value')
-                if (not ret.get('ret') ) and (i == FLASH_BLOCK_TRIES -1):
-                    logger.LOGE('cmd_flash_block fails')
-                    return False
-                elif ret.get('ret'):
-                    break
+                FLASH_BLOCK_TRIES = 5
+                next = 0
+                for i in range(FLASH_BLOCK_TRIES):
+                    if i > 0:
+                        logger.LOGW('第 %d 次重试写入数据块 %d' %(i, index))
+                    ret = instance.cmd_flash_block(data[offset: offset+length], length, index)
+                    next = ret.get('res_ret').get('value')
+                    if (not ret.get('ret') ) and (i == FLASH_BLOCK_TRIES -1):
+                        logger.LOGE('cmd_flash_block fails')
+                        return False
+                    elif ret.get('ret'):
+                        break
 
-            if next != index + 1:
-                logger.LOGW('指针由 %d 跳至 %d' %(index, next))
+                if next != index + 1:
+                    logger.LOGW('指针由 %d 跳至 %d' %(index, next))
+                    logger.LOGW('忽略该错误，用实际的index %d' %(index))
+                    next = index + 1
+                    time.sleep(1)
+                    logger.LOGW('延时1s')
+                    
+                    # next = index + 1
 
-            # 更新进度条
-            pbar.update(next - index)
+                # 更新进度条
+                pbar.update(next - index)
 
-            index = next
+                index = next
+
 
 
     # FLASH_BLOCK_TRIES = 5
@@ -302,7 +310,30 @@ def burn_image(addr, data, lens, md5sum, instance = gSerialClientInstance):
     #         logger.LOGE("错误: MD5 校验失败")
     #         return False
 
+    global gSerialClientInstance
+
+    partions_info = []
+    if not instance:
+        instance = gSerialClientInstance
+
+    FLASH_BLOCK_SIZE = 0x1000
+    blocks = instance.BLOCKS(lens, FLASH_BLOCK_SIZE)
+
+    bunch_size = 191
+    
+
+    for index in range( int((blocks + bunch_size - 1) / bunch_size) ):
+        burn_bunch_lens = int(lens - index * bunch_size * FLASH_BLOCK_SIZE) if (lens - index * bunch_size * FLASH_BLOCK_SIZE) < bunch_size * FLASH_BLOCK_SIZE else int(bunch_size * FLASH_BLOCK_SIZE)
+        burn_bunch_md5sum = getmd5_fromlist(data[index * bunch_size * FLASH_BLOCK_SIZE: index * bunch_size * FLASH_BLOCK_SIZE + burn_bunch_lens])
+        print('addr:{:#x}, lens:{:d}, md5sum:{:#x}'.format(addr + index * bunch_size * FLASH_BLOCK_SIZE, burn_bunch_lens, burn_bunch_md5sum) )
+        partions_info.append({'addr': addr + index * bunch_size * FLASH_BLOCK_SIZE, 'size': burn_bunch_lens})
+        burn_bunch(addr + index * bunch_size * FLASH_BLOCK_SIZE, data[index * bunch_size * FLASH_BLOCK_SIZE: index * bunch_size * FLASH_BLOCK_SIZE + burn_bunch_lens], burn_bunch_lens, burn_bunch_md5sum, instance)
+        time.sleep(0.1)
+
     logger.LOGB('烧录完成')
+
+    g_serial_verify(partions_info)
+    
     return True
         
 
@@ -523,6 +554,8 @@ def command_action(argv):
         if lambda_is_file_exist(argv.l):
             g_serial_burn_lpk()
             g_serial_verify_lpk_partion()
+            logger.LOGB("结束!")
+            return True
         elif argv.f or argv.m or argv.r or argv.z:
             serial_burn_image()
         elif argv.verify:
@@ -655,7 +688,7 @@ def unzip_file(zip_src, dst_dir):
 def g_serial_verify_lpk_partion():
     global g_burn_resource_dict
     partition_info = []
-    print('g_burn_resource_dict:', g_burn_resource_dict)
+    logger.LOGI('g_burn_resource_dict:', g_burn_resource_dict)
     for item in g_burn_resource_dict.keys():
         if 'size' in g_burn_resource_dict.get(item).keys() and 'addr' in g_burn_resource_dict.get(item).keys():
             if g_burn_resource_dict.get(item).get('size') > 0 and g_burn_resource_dict.get(item).get('addr') != '':
@@ -764,7 +797,7 @@ def entrance_main():
     if not result or argv.interact:
         command_menu(argv)
 
-    #exit_app()
+    exit_app()
 
 def draw_entrance():
     '''
