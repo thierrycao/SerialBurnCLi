@@ -209,11 +209,32 @@ jobs:
       runs-on: ubuntu-latest
       if: success() && startsWith(github.ref, 'refs/tags/v')
       steps:
+        - uses: actions/checkout@v2
+        - name: get tag message
+          run: |
+            commit_var=$(git rev-parse HEAD)
+            desciption=$(git describe --tags ${commit_var})
+            rx='^v([0-9]+\.){0,2}(\*|[0-9]+)$'
+            sep="-"
+            tag_name=${desciption%%$sep*}
+            if [[ $tag_name =~ $rx ]]; then
+              #do something
+              if [[ ${tag_name} ]];then
+                tag_message=$(git tag -n1 -l ${tag_name} | awk -F' ' '{print $2}')
+              fi
+            else
+              tag_message="null tag message"
+            fi
+            release_url="https://github.com/thierrycao/SerialBurnCLi/releases/tag/$tag_name"
+            echo "tag_message: $tag_message\n release_url: $release_url"
+            echo "tag_message=${tag_message}" >> $GITHUB_ENV
+            echo "release_url=${release_url}" >> $GITHUB_ENV
+
         - name: notice wxwork when version releases
           run: |
             PROJECT_NAME_LO=$(echo ${{ github.repository }} )
             VERSION=$(echo ${{github.ref }} | awk -F/ '{print $3}' )
-            content="**GitHub 源码发布**\n仓库: ${PROJECT_NAME_LO}\n版本: ${VERSION}"
+            content="**GitHub 源码发布**\n仓库: ${PROJECT_NAME_LO}\n版本: ${VERSION}\n发布信息: ${{env.tag_message}}\n下载链接: ${{env.release_url}}"
             curl --header "Content-Type: application/json" \
             --request POST \
             --data "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"${content}\"}}" \
