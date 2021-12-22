@@ -3,6 +3,9 @@
 
 name: Python application
 
+#env:
+#  env.dist_name: iBurn 
+
 on:
   push:
     branches: [ master, feature/deploy-test ]
@@ -43,6 +46,14 @@ jobs:
         echo "RUNNER_OS:"${{ runner.os }}
       shell: pwsh
      
+    - name: Set Up Project Environment(Linux || macOS)
+      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+      run: |
+        echo "dist_name=iBurn">>$GITHUB_ENV
+    - name: Set Up Project Environment(Windows)
+      if: runner.os == 'Windows'
+      run: |
+        echo "dist_name=iBurn" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Lint with flake8
       if: success()
@@ -65,62 +76,26 @@ jobs:
     - name: Check Pack Artifact Result
       run: |
         ls dist
-    - name: Upload Artifact (Linux)
+    - name: Upload Artifact (Linux || macOS)
       uses: actions/upload-artifact@v2
-      if: success() && ( runner.os == 'Linux')
+      if: success() && ( runner.os == 'Linux' || runner.os == 'macOS')
       with:
-        name: app-${{runner.os}}
-        path: dist/iBurn
-    - name: Upload Artifact (macOS)
-      uses: actions/upload-artifact@v2
-      if: success() && ( runner.os == 'macOS' )
-      with:
-        name: app-${{runner.os}}
-        path: dist/iBurn
-  
+        name: ${{env.dist_name}}-${{runner.os}}
+        path: dist/${{env.dist_name}}
+   
     - name: Upload Artifact (Windows)
       uses: actions/upload-artifact@v2
       if: runner.os == 'Windows' 
       with:
-        name: app-${{runner.os}}
-        path: dist/iBurn.exe
+        name: ${{env.dist_name}}-${{runner.os}}
+        path: dist/${{env.dist_name}}.exe
     
-
-  deploy:
-    name: Publish Release And Upload Release Asset
+  publish:
+    name: Publish Release
     needs: build
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-    #runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download build result for app
-        # 自动解压缩到当前文件夹，自动删除原压缩文件
-        #if: steps.prepare_release.outputs.tag_name
-        uses: actions/download-artifact@v2
-        with:
-          name: app-${{runner.os}}
-          path: ./
-
-      - name: Check Meta Data (Linux || macOS)
-        if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
-        run: |
-          if [[ -e iBurn ]];then echo "iBurn exists" ;else echo "iBurn not exists"; fi
-          ls iBurn
-
-      - name: Check Meta Data (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          if([io.Directory]::Exists('iBurn')){
-            echo "iBurn exists"
-          }else{
-            echo "iBurn not exists"
-          }
-          ls iBurn.exe
-        shell: pwsh
-
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -133,7 +108,78 @@ jobs:
           body: |
             Changes in this Release
           draft: false
-          prerelease: false
+          prerelease: false   
+      - name: Save Publish Url In Environment
+        if: success()
+        run: |
+          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          echo "${{ steps.create_release.outputs.upload_url }}"> upload_url
+      - name: Upload Artifact (Linux || macOS || Windows)
+        uses: actions/upload-artifact@v2
+        if: success()
+        with:
+          name: upload_url
+          path: upload_url
+      
+  deploy:
+    name: Upload Release Asset
+    needs: publish
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    #runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      
+      - name: Download Publish Url for app
+        # 自动解压缩到当前文件夹，自动删除原压缩文件
+        #if: steps.prepare_release.outputs.tag_name
+        uses: actions/download-artifact@v2
+        with:
+          name: upload_url
+          path: ./
+      - name: Set Up Environment(Linux || macOS)
+        id: setup_env_linux_macos
+        if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+        run: |
+          echo "upload_url=$(cat upload_url)" >> $GITHUB_ENV
+          echo "dist_name=iBurn" >> $GITHUB_ENV
+          echo "tag_name=$(echo ${{github.ref }} | awk -F/ '{print $3}' )" >> $GITHUB_ENV
+          echo "env.upload_url:${{env.upload_url}}"
+          echo "env.dist_name:${{env.dist_name}}"
+          echo "env.tag_name:${{env.tag_name}}"
+      - name: Set Up Environment(Windows)
+        id: setup_env_windows
+        if: runner.os == 'Windows'
+        run: |
+          echo "upload_url=$(cat upload_url)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "dist_name=iBurn" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "tag_name=$(echo ${{github.ref }} | awk -F/ '{print $3}' )" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "env.upload_url:${{env.upload_url}}"
+          echo "env.dist_name:${{env.dist_name}}"
+          echo "env.tag_name:${{env.tag_name}}"
+
+      - name: Download build result for app
+        # 自动解压缩到当前文件夹，自动删除原压缩文件
+        #if: steps.prepare_release.outputs.tag_name
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{env.dist_name}}-${{runner.os}}
+          path: ./
+
+      - name: Check Meta Data (Linux || macOS)
+        if: success() && ( runner.os == 'Linux' || runner.os == 'macOS' )
+        run: |
+          if [[ -e ${{ env.dist_name }} ]];then echo "${{env.dist_name}} exists" ;else echo "${{env.dist_name}} not exists"; fi
+          ls ${{env.dist_name}}
+
+      - name: Check Meta Data (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          ls ${{env.dist_name}}.exe
+        shell: pwsh
+
       - name: Upload Release Asset (Linux || macOS)
         id: upload-release-asset-linux-macos
         uses: actions/upload-release-asset@v1
@@ -141,9 +187,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: success() && (runner.os == 'Linux' || runner.os == 'macOS')
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: iBurn
-          asset_name: iBurn_${{ github.ref }}.zip
+          upload_url: ${{ env.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ${{env.dist_name}}
+          asset_name: ${{env.dist_name}}_${{runner.os}}_${{ env.tag_name }}
           asset_content_type: application/gzip
       - name: Upload Release Asset(Windows)
         id: upload-release-asset-windows
@@ -152,7 +198,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: runner.os == 'Windows'
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: iBurn.exe
-          asset_name: iBurn_${{ github.ref }}.zip
+          upload_url: ${{ env.upload_url }} 
+          asset_path: ${{ env.dist_name }}.exe
+          asset_name: ${{env.dist_name}}_${{runner.os}}_${{ env.tag_name }}.exe
           asset_content_type: application/gzip
+
+  notice-wxworks:
+      name: Notice Release
+      needs: deploy
+      runs-on: ubuntu-latest
+      if: success() && startsWith(github.ref, 'refs/tags/v')
+      steps:
+        - uses: actions/checkout@v2
+        - name: get tag message
+          run: |
+            commit_var=$(git rev-parse HEAD)
+            desciption=$(git describe --tags ${commit_var})
+            rx='^v([0-9]+\.){0,2}(\*|[0-9]+)$'
+            sep="-"
+            tag_name=${desciption%%$sep*}
+            if [[ $tag_name =~ $rx ]]; then
+              #do something
+              if [[ ${tag_name} ]];then
+                tag_message=$(git tag -n1 -l ${tag_name} | awk -F' ' '{print $2}')
+              fi
+            else
+              tag_message="null tag message"
+            fi
+            release_url="https://github.com/thierrycao/SerialBurnCLi/releases/tag/$tag_name"
+            echo "tag_message: $tag_message\n release_url: $release_url"
+            echo "tag_message=${tag_message}" >> $GITHUB_ENV
+            echo "release_url=${release_url}" >> $GITHUB_ENV
+
+        - name: notice wxwork when version releases
+          run: |
+            PROJECT_NAME_LO=$(echo ${{ github.repository }} )
+            VERSION=$(echo ${{github.ref }} | awk -F/ '{print $3}' )
+            content="**GitHub 源码发布**\n仓库: ${PROJECT_NAME_LO}\n版本: ${VERSION}\n发布信息: ${{env.tag_message}}\n下载链接: ${{env.release_url}}"
+            curl --header "Content-Type: application/json" \
+            --request POST \
+            --data "{\"msgtype\":\"markdown\",\"markdown\":{\"content\":\"${content}\"}}" \
+            "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${{secrets.WX_RELEASE_BOT_TOKEN}}"

@@ -7,11 +7,13 @@
 #########################################################################
 from plugins import logger as logger
 import time
+g_serial_print_funcname_dbg = False
 class CSKBurnProtocolClient():
     def __init__(self, serialInstance, serial_interaction_dump_dbg, serial_print_funcname_dbg):
         self.serialInstance = serialInstance
         self.serial_interaction_dump_dbg = serial_interaction_dump_dbg
         self.serial_print_funcname_dbg = serial_print_funcname_dbg
+        g_serial_print_funcname_dbg = self.serial_print_funcname_dbg
         self.attach()
 
     def attach(self):
@@ -318,7 +320,7 @@ class CSKBurnProtocolClient():
             return (True, 0x00)
     def print_funcname(fn):
         def wrapper(*arg, **kw):
-            if self.serial_print_funcname_dbg:
+            if g_serial_print_funcname_dbg:
                 logger.LOGB('%s' % fn.__name__)
             return fn(*arg, **kw)
         return wrapper

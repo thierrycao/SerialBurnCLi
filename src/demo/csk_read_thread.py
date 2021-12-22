@@ -16,13 +16,13 @@ import time
 
 
 class ReadSerialThread(threading.Thread):
-    def __init__(self, serial_raw_dump_dbg, thread_id = 0, name = 'usbserial', serial_instance = None):
+    def __init__(self, serial_raw_dump_dbg, com = None, thread_id = 0, name = 'usbserial', serial_instance = None):
         threading.Thread.__init__(self)
         self.threadID = thread_id
         self.name = name
         self.serial = None
         self.serial_is_open = False
-        self.serial_com = None
+        self.serial_com = com
         self.serial_raw_dump_dbg = serial_raw_dump_dbg
         self.preset_output_dir='output'
         self.output_dir='output'
@@ -30,7 +30,7 @@ class ReadSerialThread(threading.Thread):
         self.lock = threading.RLock()
 
         if serial_instance == None:
-            self.init_serial()
+            self.init_serial(com = self.serial_com)
         else:
             self.serial = serial_instance
 
@@ -45,15 +45,15 @@ class ReadSerialThread(threading.Thread):
 
         while com == None:
             com_list = self.get_serial_ports()
-            logger.LOGI('串口监测结果:{}'.format(com_list))
+            #logger.LOGI('串口监测结果:{}'.format(com_list))
             if com_list:
                 if len(com_list) > 1:
                     com_is_only = lambda f: f is not None and f >=0 and f < len(com_list)
                     choice = None
-                    com = utils.user_choice('{} {}'.format(utils.table_prompt(com_list) , '\n选择需要的串口号'), com_is_only, choice, isDigit = True) 
+                    com = utils.user_choice('{} {}'.format(utils.table_prompt(com_list) , '\n选择需要的串口号: '), com_is_only, choice, isDigit = True) 
                     com = int(com)
                     com = com_list[com]
-                    print('com:', com)
+                    #print('com:', com)
                 else:
                     com = com_list[0]
                 self.serial_com = com

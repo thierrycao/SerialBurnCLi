@@ -861,3 +861,13 @@ def getmd5(file):
     # return bytes.fromhex(md5code).hex()
     return int(md5code, 16)
 
+def getmd5_fromlist(l):
+    import hashlib
+    bytes_list = bytes(l)
+    m = hashlib.md5()
+    m.update(bytes_list)
+    md5code = m.hexdigest()
+    # return bytes.fromhex(md5code).hex()
+    return int(md5code, 16)
+
+
