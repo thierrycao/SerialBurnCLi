@@ -611,6 +611,9 @@ def command_menu(argv):
         elif choice == 'br':
             logger.LOGB('正在烧录respak…')
             g_serial_burn_partition('respak')
+        elif choice == 'bz':
+            logger.LOGB('正在烧录zero…')
+            g_serial_burn_partition('zero')
         elif choice == 'rb':
             logger.LOGB('正在重启…')
             g_serial_reboot()
