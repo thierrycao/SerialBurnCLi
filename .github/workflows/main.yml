@@ -39,10 +39,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest
+        pip install pyinstaller tqdm pyserial colorama pycallgraph prettytable
         if([io.Directory]::Exists('requirements.txt')){
           pip install -r requirements.txt
         }
         pip install https://github.com/pyinstaller/pyinstaller/archive/develop.tar.gz
+        pip freeze
         echo "RUNNER_OS:"${{ runner.os }}
       shell: pwsh
      
